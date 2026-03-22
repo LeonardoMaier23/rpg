@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>RPG Infinito</title>
+
+<!-- ══ PWA / iOS META TAGS ══ -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RPG Infinito">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#08080f">
+<meta name="description" content="RPG com poderes infinitos, propriedades e Modo Deus">
+
+<!-- ══ PWA MANIFEST inline ══ -->
+<script>
+const manifestData = {
+  name: "RPG Infinito",
+  short_name: "RPG ⚔️",
+  description: "RPG com poderes infinitos e Modo Deus",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#08080f",
+  theme_color: "#08080f",
+  orientation: "portrait",
+  icons: [
+    { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%2308080f'/><text y='320' x='256' text-anchor='middle' font-size='300'>⚔️</text></svg>", sizes: "512x512", type: "image/svg+xml" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+document.write('<link rel="manifest" href="'+manifestURL+'">');
+</script>
+
+<!-- iOS splash / icon via canvas (gerado dinamicamente) -->
+<script>
+function makeIconURL(size){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const ctx=c.getContext('2d');
+  const g=ctx.createLinearGradient(0,0,size,size);
+  g.addColorStop(0,'#1a0a2e');g.addColorStop(1,'#08080f');
+  ctx.fillStyle=g;
+  const r=size*0.18;
+  ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(size-r,0);
+  ctx.quadraticCurveTo(size,0,size,r);ctx.lineTo(size,size-r);
+  ctx.quadraticCurveTo(size,size,size-r,size);ctx.lineTo(r,size);
+  ctx.quadraticCurveTo(0,size,0,size-r);ctx.lineTo(0,r);
+  ctx.quadraticCurveTo(0,0,r,0);ctx.closePath();ctx.fill();
+  ctx.font=`${size*0.55}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('⚔️',size/2,size/2+size*0.03);
+  return c.toDataURL();
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  [57,60,72,76,114,120,144,152,180].forEach(s=>{
+    const l=document.createElement('link');
+    l.rel='apple-touch-icon';l.setAttribute('sizes',s+'x'+s);
+    l.href=makeIconURL(s);document.head.appendChild(l);
+  });
+});
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root{
+  --gold:#f0c040;--gold2:#d4a017;--dark:#08080f;--panel:#111120;
+  --panel2:#181830;--border:#252545;--red:#e74c3c;--blue:#3498db;
+  --green:#2ecc71;--purple:#9b59b6;--orange:#e67e22;--god:#ff00ff;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html,body{height:100%;overflow:hidden;background:var(--dark)}
+body{
+  font-family:'Crimson Text',serif;font-size:15px;color:#e0d9c0;
+  background-image:radial-gradient(ellipse at top,#140a2e 0%,#08080f 65%);
+  padding-top:var(--safe-top);
+  padding-bottom:var(--safe-bottom);
+}
+h1,h2,h3,h4{font-family:'Cinzel',serif}
+
+/* ── INSTALL BANNER ── */
+#install-banner{
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  background:linear-gradient(135deg,#1a0a2e,#0a0a1e);
+  border-bottom:1px solid var(--gold);
+  padding:.7rem 1rem;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;
+  padding-top:calc(var(--safe-top) + .7rem);
+}
+#install-banner .ib-text{font-size:.78rem;color:#c0b090;line-height:1.4}
+#install-banner .ib-text strong{color:var(--gold);display:block;font-family:'Cinzel',serif;font-size:.8rem}
+#install-banner .ib-close{background:none;border:none;color:#887766;font-size:1.2rem;cursor:pointer;padding:.2rem}
+#install-banner.hidden{display:none}
+
+/* ── SCREENS ── */
+.screen{display:none;height:100%;flex-direction:column}
+.screen.active{display:flex}
+
+/* ── TITLE ── */
+#screen-title{
+  align-items:center;justify-content:center;text-align:center;gap:1rem;
+  padding:2rem 1.5rem;
+  background:radial-gradient(ellipse at center,#1a0535 0%,#08080f 70%);
+}
+.title-glow{
+  font-size:clamp(2.5rem,12vw,5rem);color:var(--gold);
+  text-shadow:0 0 40px #f0c04099,0 0 80px #f0c04044;
+  animation:gpulse 3s infinite;line-height:1.1
+}
+@keyframes gpulse{0%,100%{text-shadow:0 0 40px #f0c04099,0 0 80px #f0c04044}50%{text-shadow:0 0 70px #f0c040cc,0 0 140px #f0c04066}}
+.subtitle{color:#807060;font-style:italic;font-size:1.05rem}
+.install-hint{
+  background:#1a1020;border:1px solid #3a2040;border-radius:10px;
+  padding:.8rem 1.2rem;font-size:.78rem;color:#a090b0;line-height:1.6;
+  max-width:320px;text-align:left
+}
+.install-hint strong{color:var(--gold)}
+
+/* ── CREATE ── */
+#screen-create{padding:1rem;align-items:center;gap:.8rem;overflow-y:auto}
+#screen-create h2{color:var(--gold);font-size:1.5rem;margin-top:.5rem}
+.name-input{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.65rem 1rem;color:#e0d9c0;font-family:'Crimson Text',serif;
+  font-size:1rem;width:100%;max-width:300px;outline:none;
+  -webkit-appearance:none
+}
+.name-input:focus{border-color:var(--gold)}
+.class-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;width:100%;max-width:500px}
+.class-card{
+  background:var(--panel);border:2px solid var(--border);border-radius:12px;
+  padding:.8rem .5rem;cursor:pointer;transition:all .2s;text-align:center
+}
+.class-card.selected{border-color:var(--gold);box-shadow:0 0 18px #f0c04044;transform:scale(1.03)}
+.class-card .icon{font-size:2rem}
+.class-card h3{font-size:.78rem;color:var(--gold);margin:.25rem 0 .1rem}
+.class-card p{font-size:.65rem;color:#706050;line-height:1.25}
+
+/* ── GAME ── */
+#screen-game{flex-direction:column;height:100%}
+
+/* TOP BAR */
+#topbar{
+  background:var(--panel);border-bottom:1px solid var(--border);
+  padding:.5rem .8rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0
+}
+.hero-mini{display:flex;align-items:center;gap:.5rem;flex:1}
+.hero-mini .h-icon{font-size:1.6rem}
+.hero-mini .h-info h3{font-size:.75rem;color:var(--gold);line-height:1}
+.hero-mini .h-info .h-class{font-size:.62rem;color:#887766}
+.bars-mini{display:flex;flex-direction:column;gap:.25rem;flex:1}
+.mini-bar-row{display:flex;align-items:center;gap:.3rem;font-size:.62rem}
+.mini-bar-wrap{flex:1;height:5px;background:#181830;border-radius:3px;overflow:hidden}
+.mini-bar{height:100%;border-radius:3px;transition:width .3s}
+.bar-hp{background:linear-gradient(90deg,#8b1a1a,#e74c3c)}
+.bar-mp{background:linear-gradient(90deg,#1a3a8b,#3498db)}
+.bar-xp{background:linear-gradient(90deg,#5a1a8b,#9b59b6)}
+.mini-bar-val{font-size:.6rem;color:#aaa;min-width:30px;text-align:right}
+.gold-mini{
+  background:linear-gradient(135deg,#1a1500,#2a2000);
+  border:1px solid var(--gold2);border-radius:8px;
+  padding:.3rem .5rem;font-family:'Cinzel',serif;font-size:.72rem;color:var(--gold);
+  white-space:nowrap
+}
+
+/* TABS */
+#tabs{
+  display:flex;background:var(--panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;overflow-x:auto;
+}
+#tabs::-webkit-scrollbar{display:none}
+.tab-btn{
+  flex:1;min-width:58px;padding:.55rem .3rem;
+  background:none;border:none;color:#554433;
+  font-family:'Cinzel',serif;font-size:.6rem;cursor:pointer;
+  transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap
+}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:#1a1a2e44}
+
+/* CONTENT */
+#tab-content{flex:1;overflow-y:auto;padding:.9rem;-webkit-overflow-scrolling:touch}
+
+/* BOTTOM NAV (mobile) */
+#bottom-nav{
+  display:flex;background:var(--panel);border-top:1px solid var(--border);
+  flex-shrink:0;padding-bottom:var(--safe-bottom)
+}
+.bnav-btn{
+  flex:1;padding:.6rem .2rem;background:none;border:none;
+  color:#554433;font-family:'Cinzel',serif;font-size:.58rem;
+  cursor:pointer;transition:all .2s;display:flex;flex-direction:column;
+  align-items:center;gap:.15rem
+}
+.bnav-btn .bnav-icon{font-size:1.3rem}
+.bnav-btn.active{color:var(--gold)}
+.bnav-btn.god-nav{color:#880088}
+.bnav-btn.god-nav.active{color:var(--god)}
+
+/* ── ADVENTURE ── */
+.zone-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.8rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.8rem
+}
+.zone-card .z-icon{font-size:2rem}
+.zone-card h3{color:var(--gold);font-size:.85rem}
+.zone-card p{font-size:.7rem;color:#887766}
+
+.enemy-card{
+  background:linear-gradient(135deg,#1a0808,#1e0a0a);
+  border:1px solid #441111;border-radius:10px;padding:.8rem;
+  margin-bottom:.8rem;display:none
+}
+.enemy-card.visible{display:block}
+.enemy-card h3{color:var(--red);font-size:.88rem;margin-bottom:.4rem}
+.enemy-hp-bar{height:10px;background:#200;border-radius:5px;overflow:hidden;margin-bottom:.3rem}
+.enemy-hp-fill{height:100%;background:linear-gradient(90deg,#8b0000,#e74c3c);border-radius:5px;transition:width .3s}
+
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:.8rem}
+
+#log{
+  background:#0a0a16;border:1px solid var(--border);border-radius:8px;
+  padding:.8rem;height:160px;overflow-y:auto;font-size:.78rem;line-height:1.65;
+  -webkit-overflow-scrolling:touch
+}
+#log p{margin:0;padding:.08rem 0;border-bottom:1px solid #181830}
+.log-system{color:#445577}.log-combat{color:#cc4444}.log-loot{color:var(--gold)}
+.log-level{color:#9b59b6;font-weight:bold}.log-info{color:#338855}
+.log-power{color:#3498db}.log-god{color:#ff00ff;font-weight:bold}
+
+/* STATS BAR */
+.attr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.3rem;font-size:.72rem;margin:.4rem 0}
+.attr-pill{
+  background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+  padding:.25rem .4rem;text-align:center
+}
+.attr-pill span{display:block;font-size:.6rem;color:#887766}
+.attr-pill b{color:#e0d9c0}
+
+/* ── POWERS ── */
+.power-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.power-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.75rem;position:relative;transition:border-color .2s
+}
+.power-card.owned{border-color:var(--gold)}
+.power-card.god-trait{border-color:var(--god);box-shadow:0 0 10px #ff00ff33}
+.power-card .p-icon{font-size:1.5rem}
+.power-card h4{color:var(--gold);font-size:.75rem;margin:.2rem 0 .15rem}
+.power-card p{font-size:.65rem;color:#887766;line-height:1.3}
+.power-card .p-cost{font-size:.65rem;color:var(--gold);margin-top:.3rem}
+.power-card .plvl{position:absolute;top:.35rem;right:.35rem;font-size:.58rem;background:#9b59b644;color:#c39bd3;padding:.1rem .3rem;border-radius:8px}
+.tier-label{color:var(--gold);font-family:'Cinzel',serif;font-size:.75rem;margin:.9rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:.25rem}
+
+/* ── PROPERTIES ── */
+.prop-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.prop-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.75rem;transition:all .2s
+}
+.prop-card.owned{border-color:var(--green);background:linear-gradient(135deg,#081408,#0d1a0f)}
+.prop-card .prop-icon{font-size:1.6rem}
+.prop-card h4{color:#e0d9c0;font-size:.78rem;margin:.2rem 0 .1rem}
+.prop-card .pincome{color:var(--gold);font-size:.7rem}
+.prop-card p{font-size:.65rem;color:#887766;margin-top:.2rem}
+
+/* ── SHOP ── */
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}
+.shop-item{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.75rem;text-align:center}
+.shop-item .s-icon{font-size:1.8rem}
+.shop-item h4{color:#e0d9c0;font-size:.75rem;margin:.3rem 0 .1rem}
+.shop-item p{font-size:.63rem;color:#887766;margin-bottom:.35rem}
+.shop-item .sprice{color:var(--gold);font-size:.72rem;margin-bottom:.35rem}
+
+/* ── FICHA ── */
+.ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.ficha-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.75rem}
+.ficha-card h4{color:var(--gold);font-size:.75rem;margin-bottom:.5rem}
+.frow{display:flex;justify-content:space-between;font-size:.73rem;padding:.18rem 0;border-bottom:1px solid #181830}
+.frow .fv{color:#e0d9c0}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:.55rem .8rem;border:none;border-radius:9px;cursor:pointer;
+  font-family:'Cinzel',serif;font-size:.7rem;transition:all .15s;font-weight:600;
+  -webkit-appearance:none;width:100%
+}
+.btn:active{transform:scale(.96);filter:brightness(.9)}
+.btn:disabled{opacity:.35;pointer-events:none}
+.btn-gold{background:linear-gradient(135deg,#c9960c,#f0c040);color:#1a0e00}
+.btn-red{background:linear-gradient(135deg,#7b1212,#e74c3c);color:#fff}
+.btn-blue{background:linear-gradient(135deg,#12327b,#3498db);color:#fff}
+.btn-green{background:linear-gradient(135deg,#124c22,#2ecc71);color:#fff}
+.btn-purple{background:linear-gradient(135deg,#3a1278,#9b59b6);color:#fff}
+.btn-orange{background:linear-gradient(135deg,#7b3a12,#e67e22);color:#fff}
+.btn-dark{background:var(--panel2);color:#aaa;border:1px solid var(--border)}
+.btn-god{background:linear-gradient(135deg,#330033,#aa00aa);color:#ffaaff;box-shadow:0 0 12px #ff00ff33}
+.btn-sm{padding:.35rem .6rem;font-size:.65rem;width:auto}
+
+/* ══════════════════════
+   GOD MODE
+══════════════════════ */
+#god-panel{
+  position:fixed;inset:0;z-index:800;
+  display:none;flex-direction:column;
+  background:linear-gradient(180deg,#0a000f,#0d0015);
+  padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);
+  overflow:hidden
+}
+#god-panel.open{display:flex}
+.god-header{
+  background:linear-gradient(90deg,#150020,#250035,#150020);
+  border-bottom:1px solid #aa00aa55;
+  padding:.8rem 1rem;display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0
+}
+.god-header h2{color:var(--god);font-size:1.1rem;text-shadow:0 0 15px #ff00ff88}
+.god-body{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem;-webkit-overflow-scrolling:touch}
+.god-section h3{font-size:.8rem;color:var(--god);font-family:'Cinzel',serif;margin-bottom:.6rem;border-bottom:1px solid #aa00aa33;padding-bottom:.3rem}
+
+.god-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.god-stat-row{
+  background:#1a0022;border:1px solid #550055;border-radius:8px;
+  padding:.4rem .6rem;display:flex;align-items:center;justify-content:space-between;gap:.3rem
+}
+.god-stat-row label{font-size:.7rem;color:#dd88dd;flex:1}
+.god-stat-row input[type=number]{
+  width:65px;background:#0a0010;border:1px solid #770077;
+  border-radius:6px;padding:.2rem .35rem;color:#ff88ff;
+  font-family:'Cinzel',serif;font-size:.72rem;outline:none;text-align:center;
+  -webkit-appearance:none
+}
+
+.god-input{
+  background:#0a0010;border:1px solid #660066;border-radius:8px;
+  padding:.4rem .65rem;color:#ff99ff;font-family:'Crimson Text',serif;
+  font-size:.85rem;outline:none;width:100%;-webkit-appearance:none
+}
+.god-label{font-size:.68rem;color:#aa77aa;margin-bottom:.2rem;display:block}
+.god-select{
+  background:#0a0010;border:1px solid #660066;border-radius:8px;
+  padding:.4rem .65rem;color:#ff99ff;font-size:.82rem;outline:none;width:100%;
+  -webkit-appearance:none
+}
+.trait-form{display:flex;flex-direction:column;gap:.5rem}
+.trait-form-row{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.custom-traits-list{display:flex;flex-wrap:wrap;gap:.35rem;min-height:28px;margin-top:.35rem}
+.ctrait-tag{
+  background:#1a0025;border:1px solid #880088;border-radius:16px;
+  padding:.18rem .6rem;font-size:.68rem;color:#ff88ff;
+  display:flex;align-items:center;gap:.35rem
+}
+.ctrait-tag .del{cursor:pointer;color:#ff44ff;font-size:.75rem}
+
+.god-powers-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;max-height:200px;overflow-y:auto}
+.god-power-btn{
+  background:#0a0015;border:1px solid #440055;border-radius:8px;
+  padding:.35rem .5rem;cursor:pointer;display:flex;align-items:center;gap:.4rem;
+  transition:all .15s
+}
+.god-power-btn:active{background:#1a0025}
+.god-power-btn.unlocked{border-color:#55aa55;background:#0a1508}
+.god-power-btn .gpi{font-size:1.1rem}
+.god-power-btn .gpn{font-size:.67rem;color:#dd88ff}
+.god-power-btn.unlocked .gpn{color:#88ff88}
+
+.god-props-wrap{display:flex;flex-wrap:wrap;gap:.35rem}
+.cheats-wrap{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+
+.btn-god-sm{
+  background:linear-gradient(135deg,#330033,#880088);color:#ffaaff;
+  border:none;border-radius:8px;padding:.4rem .7rem;
+  font-family:'Cinzel',serif;font-size:.68rem;cursor:pointer;
+  transition:all .15s;-webkit-appearance:none
+}
+.btn-god-sm:active{transform:scale(.95)}
+
+.god-log{
+  background:#0a0010;border:1px solid #440044;border-radius:8px;
+  padding:.5rem .8rem;height:70px;overflow-y:auto;font-size:.68rem;color:#aa66aa;line-height:1.55
+}
+
+/* LEVEL UP FLASH */
+.lup-flash{position:fixed;inset:0;background:radial-gradient(circle,#9b59b655 0%,transparent 70%);z-index:700;pointer-events:none;opacity:0;transition:opacity .5s}
+.lup-flash.show{opacity:1}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:#000000cc;z-index:600;align-items:center;justify-content:center;padding:1rem}
+.modal-ov.open{display:flex}
+.modal-box{background:var(--panel2);border:2px solid var(--gold);border-radius:14px;padding:1.5rem;max-width:380px;width:100%;text-align:center;box-shadow:0 0 30px #f0c04033}
+.modal-box h2{color:var(--gold);margin-bottom:.7rem;font-size:1.1rem}
+.modal-box p{color:#c0b090;margin-bottom:1rem;line-height:1.55;font-size:.85rem}
+
+/* ACTIVE POWERS CHIPS */
+.powers-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}
+.pchip{background:#1a0a2e;border:1px solid #4a2a6e;border-radius:12px;padding:.15rem .45rem;font-size:.62rem;color:#c39bd3}
+.pchip.god{background:#2a0030;border-color:#aa00aa;color:#ff88ff}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#252545;border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="lup-flash" id="lvl-flash"></div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="ib-text">
+    <strong>⚔️ Instalar RPG Infinito</strong>
+    Toque em <strong>Compartilhar ↑</strong> → <strong>"Adicionar à Tela de Início"</strong>
+  </div>
+  <button class="ib-close" onclick="dismissBanner()">✕</button>
+</div>
+
+<!-- ══════════ TÍTULO ══════════ -->
+<div class="screen active" id="screen-title">
+  <h1 class="title-glow">⚔️<br>RPG<br>INFINITO</h1>
+  <p class="subtitle">Poderes e riqueza sem limites</p>
+
+  <div class="install-hint">
+    <strong>📱 Instalar no iPhone:</strong><br>
+    1. Toque em <strong>Compartilhar ↑</strong> no Safari<br>
+    2. Role e toque em <strong>"Adicionar à Tela de Início"</strong><br>
+    3. Toque em <strong>"Adicionar"</strong><br>
+    ✅ Vira um app com ícone na sua tela!
+  </div>
+
+  <button class="btn btn-gold" style="max-width:280px;font-size:1rem;padding:.75rem" onclick="showScreen('screen-create')">▶ COMEÇAR AVENTURA</button>
+  <p style="font-size:.7rem;color:#443322;font-style:italic">✨ No jogo: toque em 👁️ para o Modo Deus</p>
+</div>
+
+<!-- ══════════ CRIAÇÃO ══════════ -->
+<div class="screen" id="screen-create">
+  <div style="text-align:center;padding:1rem 0 .5rem">
+    <h2 style="color:var(--gold)">✨ Crie Seu Herói</h2>
+  </div>
+  <input class="name-input" id="hero-name-input" placeholder="Nome do herói..." maxlength="20" value="Herói">
+  <div style="color:var(--gold);font-family:'Cinzel',serif;font-size:.75rem;margin-bottom:.4rem">Escolha sua Classe</div>
+  <div class="class-grid" id="class-grid"></div>
+  <button class="btn btn-gold" style="max-width:280px;margin:.5rem auto" onclick="startGame()">⚔️ INICIAR JORNADA</button>
+</div>
+
+<!-- ══════════ JOGO ══════════ -->
+<div class="screen" id="screen-game">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="hero-mini">
+      <div class="h-icon" id="hero-icon">⚔️</div>
+      <div class="h-info">
+        <h3 id="hero-name-display">Herói</h3>
+        <div class="h-class"><span id="hero-class-display">Guerreiro</span> · Nv.<span id="hero-level">1</span></div>
+      </div>
+    </div>
+    <div class="bars-mini">
+      <div class="mini-bar-row">
+        <span>❤️</span>
+        <div class="mini-bar-wrap"><div class="mini-bar bar-hp" id="bar-hp" style="width:100%"></div></div>
+        <span class="mini-bar-val" id="val-hp">100</span>
+      </div>
+      <div class="mini-bar-row">
+        <span>💙</span>
+        <div class="mini-bar-wrap"><div class="mini-bar bar-mp" id="bar-mp" style="width:100%"></div></div>
+        <span class="mini-bar-val" id="val-mp">50</span>
+      </div>
+      <div class="mini-bar-row">
+        <span>✨</span>
+        <div class="mini-bar-wrap"><div class="mini-bar bar-xp" id="bar-xp" style="width:0%"></div></div>
+        <span class="mini-bar-val" id="val-xp">0%</span>
+      </div>
+    </div>
+    <div class="gold-mini">🪙 <span id="gold-display">0</span></div>
+  </div>
+
+  <!-- TAB CONTENT -->
+  <div id="tab-content">
+
+    <!-- AVENTURA -->
+    <div id="tab-adventure">
+      <div class="zone-card">
+        <div class="z-icon" id="zone-icon">🌲</div>
+        <div>
+          <h3 id="zone-name">Floresta Sombria</h3>
+          <p id="zone-desc">Nível 1+ · Perigo moderado</p>
+        </div>
+        <button class="btn btn-dark btn-sm" style="width:auto;margin-left:auto" onclick="changeZone()">🗺️</button>
+      </div>
+
+      <div class="attr-grid">
+        <div class="attr-pill"><span>⚔️ATK</span><b id="stat-atk">10</b></div>
+        <div class="attr-pill"><span>🛡️DEF</span><b id="stat-def">5</b></div>
+        <div class="attr-pill"><span>🔮MAG</span><b id="stat-mag">5</b></div>
+        <div class="attr-pill"><span>💨AGI</span><b id="stat-agi">5</b></div>
+        <div class="attr-pill"><span>🍀SORT</span><b id="stat-luck">5</b></div>
+        <div class="attr-pill"><span>⚡CRIT</span><b id="stat-crit">5%</b></div>
+      </div>
+
+      <div class="enemy-card" id="enemy-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+          <h3 id="enemy-name">Goblin</h3>
+          <span id="enemy-level-tag" style="font-size:.68rem;color:#cc4444">Nv.1</span>
+        </div>
+        <div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy-hp-fill" style="width:100%"></div></div>
+        <div style="font-size:.68rem;color:#cc4444">❤️ <span id="enemy-hp-val">50</span>/<span id="enemy-hp-max">50</span></div>
+      </div>
+
+      <div class="action-grid">
+        <button class="btn btn-red" onclick="doAction('explore')">🗺️ Explorar</button>
+        <button class="btn btn-blue" onclick="doAction('attack')">⚔️ Atacar</button>
+        <button class="btn btn-purple" onclick="doAction('magic')">🔮 Magia</button>
+        <button class="btn btn-green" onclick="doAction('heal')">💚 Curar</button>
+        <button class="btn btn-orange" onclick="doAction('flee')">💨 Fugir</button>
+        <button class="btn btn-gold" onclick="doAction('rest')">🏕️ Descansar</button>
+        <button class="btn btn-dark" onclick="doAction('steal')">🗡️ Roubar</button>
+        <button class="btn btn-dark" onclick="collectRent()">💰 Coletar</button>
+      </div>
+
+      <div id="log"><p class="log-system">⚔️ Sua lenda começa agora...</p></div>
+
+      <div style="margin-top:.6rem">
+        <div style="font-size:.68rem;color:#887766;margin-bottom:.3rem">⚡ Poderes Ativos:</div>
+        <div class="powers-chips" id="active-chips"></div>
+      </div>
+    </div>
+
+    <!-- PODERES -->
+    <div id="tab-powers" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <h3 style="color:var(--gold);font-size:.85rem">📖 Grimório</h3>
+        <span style="font-size:.7rem;color:#887766">Pts: <span id="power-points" style="color:var(--purple)">0</span></span>
+      </div>
+      <div id="powers-container"></div>
+    </div>
+
+    <!-- PROPRIEDADES -->
+    <div id="tab-properties" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem">
+        <h3 style="color:var(--gold);font-size:.85rem">🏛️ Império</h3>
+        <span style="font-size:.7rem;color:var(--gold)">+<span id="total-rent">0</span>/ação</span>
+      </div>
+      <div class="prop-grid" id="property-grid"></div>
+    </div>
+
+    <!-- LOJA -->
+    <div id="tab-shop" style="display:none">
+      <h3 style="color:var(--gold);font-size:.85rem;margin-bottom:.7rem">🛒 Mercado</h3>
+      <div class="shop-grid" id="shop-grid"></div>
+    </div>
+
+    <!-- FICHA -->
+    <div id="tab-ficha" style="display:none">
+      <h3 style="color:var(--gold);font-size:.85rem;margin-bottom:.7rem">📜 Ficha</h3>
+      <div class="ficha-grid" id="ficha-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div id="bottom-nav">
+    <button class="bnav-btn active" onclick="switchTab('adventure')"><span class="bnav-icon">⚔️</span>Aventura</button>
+    <button class="bnav-btn" onclick="switchTab('powers')"><span class="bnav-icon">🔮</span>Poderes</button>
+    <button class="bnav-btn" onclick="switchTab('properties')"><span class="bnav-icon">🏛️</span>Império</button>
+    <button class="bnav-btn" onclick="switchTab('shop')"><span class="bnav-icon">🛒</span>Loja</button>
+    <button class="bnav-btn" onclick="switchTab('ficha')"><span class="bnav-icon">📜</span>Ficha</button>
+    <button class="bnav-btn god-nav" onclick="toggleGodMode()"><span class="bnav-icon">👁️</span>Deus</button>
+  </div>
+</div>
+
+<!-- ══════════ GOD MODE ══════════ -->
+<div id="god-panel">
+  <div class="god-header">
+    <div>
+      <h2>👁️ MODO DEUS</h2>
+      <div style="font-size:.68rem;color:#aa66aa;font-style:italic">Controle absoluto</div>
+    </div>
+    <button class="btn-god-sm" onclick="toggleGodMode()">✕ Fechar</button>
+  </div>
+  <div class="god-body">
+
+    <!-- STATS -->
+    <div class="god-section">
+      <h3>📊 Editar Atributos</h3>
+      <div class="god-stat-grid" id="god-stat-grid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.6rem">
+        <button class="btn-god-sm" onclick="godApplyStats()">✅ Aplicar</button>
+        <button class="btn-god-sm" onclick="godMaxStats()">🔼 Maximizar</button>
+        <button class="btn-god-sm" onclick="godAddGold()">🪙 +10k Ouro</button>
+        <button class="btn-god-sm" onclick="godAddXP()">✨ Level Up</button>
+        <button class="btn-god-sm" onclick="godFullHeal()">❤️ HP/MP Cheio</button>
+        <button class="btn-god-sm" onclick="godAddPP()">🔮 +20 Pontos</button>
+      </div>
+    </div>
+
+    <!-- TRAIT CREATOR -->
+    <div class="god-section">
+      <h3>🌟 Criar Trait Divino</h3>
+      <div class="trait-form">
+        <div>
+          <label class="god-label">Nome do Trait</label>
+          <input class="god-input" id="trait-name" placeholder="Ex: Fúria Eterna, Olho do Caos...">
+        </div>
+        <div>
+          <label class="god-label">Descrição</label>
+          <input class="god-input" id="trait-desc" placeholder="Ex: +500% dano, imune à morte...">
+        </div>
+        <div class="trait-form-row">
+          <div>
+            <label class="god-label">Ícone (emoji)</label>
+            <input class="god-input" id="trait-icon" placeholder="⚡" maxlength="4">
+          </div>
+          <div>
+            <label class="god-label">Tipo</label>
+            <select class="god-select" id="trait-type">
+              <option value="combat">⚔️ Combate</option>
+              <option value="magic">🔮 Magia</option>
+              <option value="passive">🌀 Passivo</option>
+              <option value="wealth">💰 Riqueza</option>
+              <option value="divine">✨ Divino</option>
+            </select>
+          </div>
+        </div>
+        <div class="trait-form-row">
+          <div><label class="god-label">+ATK</label><input class="god-input" id="trait-atk" type="number" placeholder="0" min="0"></div>
+          <div><label class="god-label">+MAG</label><input class="god-input" id="trait-mag" type="number" placeholder="0" min="0"></div>
+        </div>
+        <div class="trait-form-row">
+          <div><label class="god-label">+DEF</label><input class="god-input" id="trait-def" type="number" placeholder="0" min="0"></div>
+          <div><label class="god-label">+AGI</label><input class="god-input" id="trait-agi" type="number" placeholder="0" min="0"></div>
+        </div>
+        <div class="trait-form-row">
+          <div><label class="god-label">+SORTE</label><input class="god-input" id="trait-luck" type="number" placeholder="0" min="0"></div>
+          <div><label class="god-label">+Ouro/ação</label><input class="god-input" id="trait-gold" type="number" placeholder="0" min="0"></div>
+        </div>
+        <button class="btn-god-sm" onclick="godCreateTrait()">✨ Criar e Equipar Trait</button>
+      </div>
+      <div style="margin-top:.6rem">
+        <div style="font-size:.68rem;color:#aa77aa;margin-bottom:.25rem">Traits ativos (<span id="trait-count">0</span>):</div>
+        <div class="custom-traits-list" id="custom-traits-list">
+          <span style="font-size:.68rem;color:#664466;font-style:italic">Nenhum trait ainda...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PODERES -->
+    <div class="god-section">
+      <h3>🔮 Desbloquear Poderes</h3>
+      <div class="god-powers-grid" id="god-powers-grid"></div>
+    </div>
+
+    <!-- PROPRIEDADES -->
+    <div class="god-section">
+      <h3>🏛️ Conceder Propriedades</h3>
+      <div class="god-props-wrap" id="god-props-list"></div>
+    </div>
+
+    <!-- CHEATS -->
+    <div class="god-section">
+      <h3>⚡ Cheats Rápidos</h3>
+      <div class="cheats-wrap">
+        <button class="btn-god-sm" onclick="cheat('megagold')">💰 +1M Ouro</button>
+        <button class="btn-god-sm" onclick="cheat('allpowers')">🔮 Todos Poderes</button>
+        <button class="btn-god-sm" onclick="cheat('allprops')">🏛️ Todas Props</button>
+        <button class="btn-god-sm" onclick="cheat('godstats')">📊 Stats 9999</button>
+        <button class="btn-god-sm" onclick="cheat('level100')">✨ Nível 100</button>
+        <button class="btn-god-sm" onclick="cheat('resetall')">🔄 Reset</button>
+      </div>
+    </div>
+
+    <!-- GOD LOG -->
+    <div class="god-section">
+      <h3>📋 Log Divino</h3>
+      <div class="god-log" id="god-log">Modo Deus ativado.<br></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="modal">
+  <div class="modal-box">
+    <h2 id="modal-title">Título</h2>
+    <p id="modal-body">Corpo</p>
+    <button class="btn btn-gold" style="max-width:180px;margin:0 auto" onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<script>
+// ══════════ DATA ══════════
+const CLASSES=[
+  {id:'warrior',icon:'⚔️',name:'Guerreiro',desc:'Alta vida e defesa.',bonus:{atk:8,def:8,hp:50}},
+  {id:'mage',icon:'🔮',name:'Mago',desc:'Alto poder mágico.',bonus:{mag:12,mp:30,atk:-2}},
+  {id:'rogue',icon:'🗡️',name:'Ladino',desc:'Crítico devastador.',bonus:{agi:10,luck:8,atk:4}},
+  {id:'paladin',icon:'✨',name:'Paladino',desc:'Força divina equilibrada.',bonus:{atk:5,def:5,mag:5,hp:30}},
+  {id:'ranger',icon:'🏹',name:'Arqueiro',desc:'Sorte excepcional.',bonus:{agi:8,luck:10,atk:5}},
+  {id:'necro',icon:'💀',name:'Necromante',desc:'Poderes sombrios.',bonus:{mag:15,hp:-20,mp:50}},
+  {id:'berserker',icon:'🪓',name:'Berserker',desc:'Dano absurdo.',bonus:{atk:18,def:-6,hp:30}},
+  {id:'druid',icon:'🌿',name:'Druida',desc:'Cura e natureza.',bonus:{mag:8,hp:20,luck:6}},
+  {id:'summoner',icon:'🐉',name:'Invocador',desc:'Convoca bestas.',bonus:{mag:10,mp:40,atk:2}},
+  {id:'alchemist',icon:'⚗️',name:'Alquimista',desc:'Riqueza passiva.',bonus:{mag:6,luck:8,gold:200}},
+];
+const ZONES=[
+  {id:1,icon:'🌲',name:'Floresta Sombria',desc:'Nível 1+',minLvl:1,xm:1,gm:1},
+  {id:2,icon:'🏔️',name:'Montanhas Geladas',desc:'Nível 5+',minLvl:5,xm:1.5,gm:1.5},
+  {id:3,icon:'🏜️',name:'Deserto Maldito',desc:'Nível 10+',minLvl:10,xm:2,gm:2},
+  {id:4,icon:'🌊',name:'Abismo Marinho',desc:'Nível 20+',minLvl:20,xm:3,gm:3},
+  {id:5,icon:'🌋',name:'Vulcão Infernal',desc:'Nível 35+',minLvl:35,xm:4.5,gm:4},
+  {id:6,icon:'🏰',name:'Castelo das Sombras',desc:'Nível 50+',minLvl:50,xm:6,gm:6},
+  {id:7,icon:'🌌',name:'Plano Dimensional',desc:'Nível 75+',minLvl:75,xm:9,gm:9},
+  {id:8,icon:'👁️',name:'Trono dos Deuses',desc:'Infinito',minLvl:1,xm:15,gm:15},
+];
+const ENEMIES={
+  1:[{n:'Goblin',icon:'👺',bHp:40,bAtk:5},{n:'Lobo',icon:'🐺',bHp:55,bAtk:8},{n:'Bandido',icon:'🗡️',bHp:70,bAtk:10}],
+  2:[{n:'Troll',icon:'🧌',bHp:100,bAtk:15},{n:'Harpia',icon:'🦅',bHp:80,bAtk:18}],
+  3:[{n:'Escorpião',icon:'🦂',bHp:130,bAtk:22},{n:'Múmia',icon:'🧟',bHp:150,bAtk:20}],
+  4:[{n:'Kraken',icon:'🐙',bHp:250,bAtk:35},{n:'Sereia Maligna',icon:'🧜',bHp:200,bAtk:30}],
+  5:[{n:'Demônio',icon:'👿',bHp:400,bAtk:55},{n:'Fênix Negra',icon:'🦅',bHp:380,bAtk:50}],
+  6:[{n:'Cavaleiro do Caos',icon:'🏇',bHp:700,bAtk:80},{n:'Lich',icon:'💀',bHp:600,bAtk:90}],
+  7:[{n:'Entidade Cósmica',icon:'🌀',bHp:1500,bAtk:150},{n:'Deus Menor',icon:'🌟',bHp:1200,bAtk:180}],
+  8:[{n:'Outro Deus',icon:'👁️',bHp:5000,bAtk:400},{n:'O Vazio Eterno',icon:'🌑',bHp:9999,bAtk:999}],
+};
+const ALL_POWERS=[
+  {id:'fireball',tier:1,icon:'🔥',name:'Bola de Fogo',desc:'Dano mágico em área.',cost:2,e:{mag:3}},
+  {id:'shield',tier:1,icon:'🛡️',name:'Escudo de Força',desc:'Absorve dano.',cost:2,e:{def:5}},
+  {id:'dash',tier:1,icon:'💨',name:'Corrida Sônica',desc:'Velocidade explosiva.',cost:2,e:{agi:5}},
+  {id:'smite',tier:1,icon:'⚡',name:'Golpe Sagrado',desc:'Poder divino.',cost:2,e:{atk:5}},
+  {id:'thunder',tier:2,icon:'⛈️',name:'Tempestade',desc:'Relâmpagos em área.',cost:4,e:{mag:8,atk:3}},
+  {id:'berserk',tier:2,icon:'🪓',name:'Modo Berserk',desc:'Dobra o ataque.',cost:4,e:{atk:12}},
+  {id:'shadow',tier:2,icon:'🌑',name:'Passo das Sombras',desc:'Teleporte furtivo.',cost:4,e:{agi:10,luck:5}},
+  {id:'regen',tier:2,icon:'🌿',name:'Regeneração',desc:'HP passivo.',cost:4,e:{goldBonus:10}},
+  {id:'dragon',tier:3,icon:'🐉',name:'Chama do Dragão',desc:'Devastação em área.',cost:8,e:{mag:18,atk:8}},
+  {id:'time',tier:3,icon:'⏳',name:'Manipulação do Tempo',desc:'Congela o inimigo.',cost:8,e:{agi:15,luck:10}},
+  {id:'void',tier:3,icon:'🌀',name:'Toque do Vazio',desc:'Ignora toda defesa.',cost:8,e:{atk:20,mag:10}},
+  {id:'goldrush',tier:3,icon:'💰',name:'Febre do Ouro',desc:'Triplica o ouro.',cost:8,e:{goldBonus:50}},
+  {id:'meteor',tier:4,icon:'☄️',name:'Chuva de Meteoros',desc:'Devastação total.',cost:15,e:{mag:35,atk:15}},
+  {id:'immortal',tier:4,icon:'♾️',name:'Imortalidade',desc:'Revive após derrota.',cost:15,e:{hp:200,def:20}},
+  {id:'omnimag',tier:4,icon:'🌟',name:'Arcano Supremo',desc:'Domínio total.',cost:15,e:{mag:50,mp:100}},
+  {id:'godhand',tier:4,icon:'✋',name:'Mão de Deus',desc:'Mata instantaneamente.',cost:15,e:{atk:60,luck:20}},
+  {id:'cosmos',tier:5,icon:'🌌',name:'Poder Cósmico',desc:'Todos atributos massivos.',cost:25,e:{atk:100,mag:100,def:50,agi:50,luck:50}},
+  {id:'chaos',tier:5,icon:'🌪️',name:'Caos Primordial',desc:'Efeitos aleatórios devastadores.',cost:25,e:{atk:80,mag:80,luck:30}},
+  {id:'infinity',tier:5,icon:'∞',name:'Força Infinita',desc:'Sem limites.',cost:25,e:{atk:150,mag:150,def:100,goldBonus:200}},
+];
+const PROPERTIES=[
+  {id:'hut',icon:'🛖',name:'Cabana',desc:'Moradia simples.',price:500,income:15},
+  {id:'house',icon:'🏠',name:'Casa',desc:'Confortável.',price:2000,income:50},
+  {id:'mansion',icon:'🏡',name:'Mansão',desc:'Luxuosa.',price:8000,income:180},
+  {id:'tavern',icon:'🍺',name:'Taverna',desc:'Negócio lucrativo.',price:5000,income:120},
+  {id:'market',icon:'🏪',name:'Mercado',desc:'Comércio movimentado.',price:12000,income:300},
+  {id:'guild',icon:'⚔️',name:'Guilda',desc:'Centro de aventureiros.',price:20000,income:500},
+  {id:'fortress',icon:'🏰',name:'Fortaleza',desc:'Base militar.',price:50000,income:1200},
+  {id:'castle',icon:'🏯',name:'Castelo',desc:'Lar de um rei.',price:150000,income:3500},
+  {id:'kingdom',icon:'👑',name:'Reino',desc:'Governe um território.',price:500000,income:12000},
+  {id:'empire',icon:'🌍',name:'Império',desc:'Poder econômico máximo.',price:2000000,income:50000},
+];
+const SHOP_ITEMS=[
+  {id:'hp_pot',icon:'🧪',name:'Poção de Vida',desc:'Restaura 50 HP.',price:80},
+  {id:'mp_pot',icon:'💧',name:'Poção de Mana',desc:'Restaura 40 MP.',price:60},
+  {id:'elixir',icon:'⚗️',name:'Elixir',desc:'HP e MP totais.',price:300},
+  {id:'xp_scroll',icon:'📜',name:'Pergaminho XP',desc:'+500 XP.',price:400},
+  {id:'sword',icon:'🗡️',name:'Espada Lendária',desc:'+25 ATK.',price:2500},
+  {id:'staff',icon:'🪄',name:'Cajado Arcano',desc:'+30 MAG.',price:2500},
+  {id:'armor',icon:'🛡️',name:'Armadura Divina',desc:'+20 DEF.',price:2000},
+  {id:'boots',icon:'👢',name:'Botas Fantasma',desc:'+20 AGI.',price:1800},
+  {id:'ring',icon:'💍',name:'Anel da Fortuna',desc:'+30 SORT.',price:3000},
+  {id:'tome',icon:'📚',name:'Tomo Proibido',desc:'+3 pontos poder.',price:5000},
+];
+
+// ══════════ STATE ══════════
+let G=null, selectedClass=null, currentZone=ZONES[0], currentEnemy=null, inCombat=false, cooldown=false;
+
+function freshState(cls,name){
+  const b=cls.bonus||{};
+  return{
+    name,cls,level:1,xp:0,xpNeeded:100,
+    hp:100+(b.hp||0),maxHp:100+(b.hp||0),
+    mp:50+(b.mp||0),maxMp:50+(b.mp||0),
+    gold:0+(b.gold||0),atk:10+(b.atk||0),def:5+(b.def||0),
+    mag:5+(b.mag||0),agi:5+(b.agi||0),luck:5+(b.luck||0),crit:5,
+    powerPoints:3,unlockedPowers:[],powerLevels:{},
+    ownedProperties:[],passiveIncome:0,godPassiveGold:0,
+    godTraits:[],kills:0,totalGoldEarned:0,totalDamageDealt:0,actionsCount:0,
+    quests:[
+      {name:'Primeiro Sangue',goal:5,prog:0,type:'kill',reward:{xp:200,gold:100},done:false},
+      {name:'Caçador de Ouro',goal:500,prog:0,type:'gold',reward:{xp:300,pp:2},done:false},
+      {name:'Caminho do Poder',goal:3,prog:0,type:'power',reward:{xp:500,gold:300},done:false},
+    ]
+  };
+}
+
+// ══════════ SCREENS ══════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='screen-create') buildClassGrid();
+}
+function buildClassGrid(){
+  const g=document.getElementById('class-grid');
+  g.innerHTML=CLASSES.map(c=>`<div class="class-card" id="cc-${c.id}" onclick="selectClass('${c.id}')"><div class="icon">${c.icon}</div><h3>${c.name}</h3><p>${c.desc}</p></div>`).join('');
+  selectClass(CLASSES[0].id);
+}
+function selectClass(id){
+  selectedClass=CLASSES.find(c=>c.id===id);
+  document.querySelectorAll('.class-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('cc-'+id)?.classList.add('selected');
+}
+function startGame(){
+  if(!selectedClass) return;
+  const nm=document.getElementById('hero-name-input').value.trim()||'Herói';
+  G=freshState(selectedClass,nm);
+  showScreen('screen-game');
+  renderAll(); buildPowersTab(); buildPropertiesTab(); buildShopTab(); buildFicha();
+  buildGodPanel();
+  log(`⚔️ ${nm} o ${selectedClass.name} inicia sua lenda!`,'log-info');
+  dismissBanner();
+}
+
+// ══════════ RENDER ══════════
+function renderAll(){
+  if(!G) return;
+  document.getElementById('hero-icon').textContent=G.cls.icon;
+  document.getElementById('hero-name-display').textContent=G.name;
+  document.getElementById('hero-class-display').textContent=G.cls.name;
+  document.getElementById('hero-level').textContent=G.level;
+  document.getElementById('gold-display').textContent=fn(G.gold);
+  document.getElementById('power-points').textContent=G.powerPoints;
+
+  setBar('bar-hp','val-hp',G.hp,G.maxHp,true);
+  setBar('bar-mp','val-mp',G.mp,G.maxMp,true);
+  const xpPct=Math.floor((G.xp/G.xpNeeded)*100);
+  document.getElementById('bar-xp').style.width=xpPct+'%';
+  document.getElementById('val-xp').textContent=xpPct+'%';
+
+  document.getElementById('stat-atk').textContent=G.atk;
+  document.getElementById('stat-def').textContent=G.def;
+  document.getElementById('stat-mag').textContent=G.mag;
+  document.getElementById('stat-agi').textContent=G.agi;
+  document.getElementById('stat-luck').textContent=G.luck;
+  document.getElementById('stat-crit').textContent=G.crit+'%';
+  renderChips();
+}
+function setBar(bid,vid,cur,max,short=false){
+  const p=Math.max(0,Math.min(100,(cur/max)*100));
+  document.getElementById(bid).style.width=p+'%';
+  document.getElementById(vid).textContent=short?`${Math.max(0,cur)}`:`${Math.max(0,cur)}/${max}`;
+}
+function fn(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':Math.floor(n)}
+
+// ══════════ TABS ══════════
+function switchTab(t){
+  const tabs=['adventure','powers','properties','shop','ficha'];
+  tabs.forEach(id=>{const el=document.getElementById('tab-'+id);if(el)el.style.display=id===t?'block':'none';});
+  document.querySelectorAll('.bnav-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['adventure','powers','properties','shop','ficha','god'][i]===t);
+  });
+  if(t==='ficha') buildFicha();
+  if(t==='properties') buildPropertiesTab();
+  if(t==='powers') buildPowersTab();
+}
+
+// ══════════ ACTIONS ══════════
+function doAction(type){
+  if(!G||cooldown) return;
+  cooldown=true; setTimeout(()=>cooldown=false,300);
+  G.actionsCount++;
+  const rent=G.passiveIncome+G.godPassiveGold;
+  if(rent>0){G.gold+=rent;G.totalGoldEarned+=rent;}
+  switch(type){
+    case 'explore': actExplore(); break;
+    case 'attack':  actAttack(); break;
+    case 'magic':   actMagic(); break;
+    case 'heal':    actHeal(); break;
+    case 'flee':    actFlee(); break;
+    case 'rest':    actRest(); break;
+    case 'steal':   actSteal(); break;
+  }
+  checkQuests(); renderAll();
+}
+function actExplore(){
+  if(inCombat){log('Termine o combate primeiro!','log-combat');return;}
+  const ep=ENEMIES[currentZone.id]||ENEMIES[1];
+  const eb=ep[Math.floor(Math.random()*ep.length)];
+  const lv=Math.max(1,G.level+Math.floor(Math.random()*4)-1);
+  currentEnemy={...eb,level:lv,hp:Math.floor(eb.bHp*lv*currentZone.xm),maxHp:Math.floor(eb.bHp*lv*currentZone.xm),atk:Math.floor(eb.bAtk*lv*0.8)};
+  inCombat=true; showEnemy();
+  log(`🗺️ Encontrou: ${eb.icon} ${eb.n} Nv.${lv}!`,'log-combat');
+}
+function actAttack(){
+  if(!inCombat){log('Explore para encontrar inimigos!','log-system');return;}
+  const crit=Math.random()*100<G.crit+(G.luck*0.3);
+  let dmg=Math.max(1,G.atk+Math.floor(Math.random()*8)-Math.floor(currentEnemy.atk*0.15));
+  if(crit){dmg=Math.floor(dmg*2.2);log(`⚡ CRÍTICO! ${dmg} de dano!`,'log-combat');}
+  else log(`⚔️ ${dmg} de dano em ${currentEnemy.n}.`,'log-combat');
+  G.totalDamageDealt+=dmg; currentEnemy.hp-=dmg;
+  if(currentEnemy.hp<=0){killEnemy();return;}
+  updateEnemy(); enemyAtk();
+}
+function actMagic(){
+  if(!inCombat){log('Explore primeiro!','log-system');return;}
+  if(G.mp<12){log('Mana insuficiente!','log-system');return;}
+  G.mp-=12;
+  const dmg=Math.max(1,Math.floor(G.mag*1.5)+Math.floor(Math.random()*15));
+  log(`🔮 Magia: ${dmg} de dano!`,'log-power');
+  G.totalDamageDealt+=dmg; currentEnemy.hp-=dmg;
+  if(currentEnemy.hp<=0){killEnemy();return;}
+  updateEnemy(); enemyAtk();
+}
+function actHeal(){
+  const heal=Math.max(10,Math.floor(G.mag*0.8)+Math.floor(Math.random()*20)+15);
+  if(inCombat&&G.mp<8){log('Mana insuficiente!','log-system');return;}
+  if(inCombat) G.mp-=8;
+  const old=G.hp; G.hp=Math.min(G.maxHp,G.hp+heal);
+  log(`💚 Curou ${G.hp-old} HP.`,'log-info');
+  if(inCombat) enemyAtk();
+}
+function actFlee(){
+  if(!inCombat){log('Não está em combate.','log-system');return;}
+  if(Math.random()<0.55+(G.agi*0.01)){log('💨 Fugiu!','log-info');endCombat();}
+  else{log('💨 Fuga falhou!','log-combat');enemyAtk();}
+}
+function actRest(){
+  if(inCombat){log('Não pode descansar em combate!','log-combat');return;}
+  G.hp=Math.min(G.maxHp,G.hp+Math.floor(G.maxHp*0.3));
+  G.mp=Math.min(G.maxMp,G.mp+Math.floor(G.maxMp*0.4));
+  log(`🏕️ Descansou e recuperou forças.`,'log-info');
+}
+function actSteal(){
+  if(!inCombat){log('Explore para encontrar inimigos!','log-system');return;}
+  if(Math.random()<0.4+(G.luck*0.01)+(G.agi*0.005)){
+    const g=Math.floor((currentEnemy.level*15+Math.random()*30)*currentZone.gm);
+    G.gold+=g; G.totalGoldEarned+=g;
+    log(`🗡️ Roubou ${g} ouro!`,'log-loot');
+    updQGold(g);
+  } else {log('🗡️ Roubo falhou!','log-combat');enemyAtk();}
+}
+function enemyAtk(){
+  if(!currentEnemy) return;
+  const dmg=Math.max(1,Math.floor(currentEnemy.atk*(1-G.def*0.005))+Math.floor(Math.random()*8));
+  G.hp-=dmg;
+  log(`${currentEnemy.icon} ${currentEnemy.n} causou ${dmg} de dano.`,'log-combat');
+  if(G.hp<=0){G.hp=0;playerDeath();}
+}
+function killEnemy(){
+  const xp=Math.floor((currentEnemy.level*30+20)*currentZone.xm);
+  const gold=Math.floor((currentEnemy.level*20+10)*currentZone.gm);
+  G.xp+=xp; G.gold+=gold; G.totalGoldEarned+=gold; G.kills++;
+  log(`💀 ${currentEnemy.n} derrotado! +${xp}XP +${gold}🪙`,'log-loot');
+  updQGold(gold); updQKill(); endCombat(); checkLevelUp();
+}
+function endCombat(){inCombat=false;currentEnemy=null;document.getElementById('enemy-panel').classList.remove('visible');}
+function playerDeath(){
+  G.hp=Math.floor(G.maxHp*0.3); G.gold=Math.floor(G.gold*0.85);
+  endCombat();
+  log(`☠️ Derrotado! Perdeu 15% do ouro.`,'log-combat');
+  showModal('💀 Derrotado!','Você sobreviveu, mas perdeu 15% do ouro. Descanse e volte mais forte!');
+}
+function showEnemy(){
+  const p=document.getElementById('enemy-panel');
+  p.classList.add('visible');
+  document.getElementById('enemy-name').textContent=`${currentEnemy.icon} ${currentEnemy.n}`;
+  document.getElementById('enemy-level-tag').textContent=`Nv.${currentEnemy.level}`;
+  updateEnemy();
+}
+function updateEnemy(){
+  if(!currentEnemy) return;
+  const p=Math.max(0,(currentEnemy.hp/currentEnemy.maxHp)*100);
+  document.getElementById('enemy-hp-fill').style.width=p+'%';
+  document.getElementById('enemy-hp-val').textContent=Math.max(0,currentEnemy.hp);
+  document.getElementById('enemy-hp-max').textContent=currentEnemy.maxHp;
+}
+function changeZone(){
+  if(inCombat){log('Termine o combate primeiro!','log-combat');return;}
+  const avail=ZONES.filter(z=>G.level>=z.minLvl);
+  const opts=avail.map(z=>`<button class="btn btn-dark" style="margin:.2rem;font-size:.7rem" onclick="setZone(${z.id});closeModal()">${z.icon} ${z.name}</button>`).join('');
+  showModal('🗺️ Escolher Zona',`<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:.3rem">${opts}</div>`);
+}
+function setZone(id){
+  currentZone=ZONES.find(z=>z.id===id)||ZONES[0];
+  document.getElementById('zone-icon').textContent=currentZone.icon;
+  document.getElementById('zone-name').textContent=currentZone.name;
+  document.getElementById('zone-desc').textContent=currentZone.desc;
+  log(`🗺️ Viajou para ${currentZone.name}!`,'log-info');
+}
+
+// ══════════ LEVEL UP ══════════
+function checkLevelUp(){
+  while(G.xp>=G.xpNeeded){
+    G.xp-=G.xpNeeded; G.level++;
+    G.xpNeeded=Math.floor(100*Math.pow(1.25,G.level-1));
+    G.maxHp+=12+Math.floor(G.level*1.5); G.hp=G.maxHp;
+    G.maxMp+=6+Math.floor(G.level*0.8); G.mp=G.maxMp;
+    G.atk+=2;G.def+=1;G.mag+=2;G.agi+=1;G.luck+=1;
+    G.crit=Math.min(75,G.crit+0.5); G.powerPoints+=2;
+    flashLU(); log(`🌟 NÍVEL UP! Nível ${G.level}! +2 pontos de poder!`,'log-level');
+    buildPowersTab(); buildFicha();
+  }
+  renderAll();
+}
+function flashLU(){const e=document.getElementById('lvl-flash');e.classList.add('show');setTimeout(()=>e.classList.remove('show'),800);}
+
+// ══════════ POWERS ══════════
+function buildPowersTab(){
+  if(!G) return;
+  const c=document.getElementById('powers-container');
+  const tierNames={1:'✦ Tier 1 — Básico',2:'✦✦ Tier 2 — Avançado',3:'✦✦✦ Tier 3 — Raro',4:'✦✦✦✦ Tier 4 — Épico',5:'✦✦✦✦✦ Tier 5 — Lendário'};
+  c.innerHTML=[1,2,3,4,5].map(t=>`
+    <div class="tier-label">${tierNames[t]}</div>
+    <div class="power-grid">${ALL_POWERS.filter(p=>p.tier===t).map(p=>{
+      const owned=G.unlockedPowers.includes(p.id),lv=G.powerLevels[p.id]||1;
+      return `<div class="power-card ${owned?'owned':''}">
+        <div class="p-icon">${p.icon}</div><h4>${p.name}</h4><p>${p.desc}</p>
+        <div class="p-cost">${owned?`✅ Nv.${lv}`:` ${p.cost}pts`}</div>
+        ${owned?`<button class="btn btn-purple" style="margin-top:.3rem;font-size:.62rem;padding:.25rem" onclick="upgradeP('${p.id}')">⬆️ UP (${p.cost})</button>`:''}
+        ${!owned?`<button class="btn btn-blue" style="margin-top:.3rem;font-size:.62rem;padding:.25rem" onclick="buyPower('${p.id}')">Aprender</button>`:''}
+        ${owned?`<div class="plvl">Lv${lv}</div>`:''}
+      </div>`;
+    }).join('')}</div>`).join('');
+}
+function buyPower(id){
+  const p=ALL_POWERS.find(x=>x.id===id);if(!p||!G) return;
+  if(G.powerPoints<p.cost){log('Pontos insuficientes!','log-system');return;}
+  G.powerPoints-=p.cost; G.unlockedPowers.push(id); G.powerLevels[id]=1;
+  applyPE(p,1); log(`🔮 Aprendeu: ${p.icon} ${p.name}!`,'log-power');
+  updQPower(); buildPowersTab(); renderAll(); renderChips();
+}
+function upgradeP(id){
+  const p=ALL_POWERS.find(x=>x.id===id);if(!p||!G) return;
+  if(G.powerPoints<p.cost){log('Pontos insuficientes!','log-system');return;}
+  G.powerPoints-=p.cost; G.powerLevels[id]=(G.powerLevels[id]||1)+1;
+  applyPE(p,0.5); log(`⬆️ ${p.name} → Nv.${G.powerLevels[id]}!`,'log-power');
+  buildPowersTab(); renderAll();
+}
+function applyPE(p,m=1){
+  const e=p.e;
+  if(e.atk) G.atk+=Math.floor(e.atk*m);
+  if(e.mag) G.mag+=Math.floor(e.mag*m);
+  if(e.def) G.def+=Math.floor(e.def*m);
+  if(e.agi) G.agi+=Math.floor(e.agi*m);
+  if(e.luck) G.luck+=Math.floor(e.luck*m);
+  if(e.hp){G.maxHp+=Math.floor(e.hp*m);G.hp+=Math.floor(e.hp*m);}
+  if(e.mp){G.maxMp+=Math.floor(e.mp*m);G.mp+=Math.floor(e.mp*m);}
+  if(e.goldBonus) G.passiveIncome+=Math.floor(e.goldBonus*m);
+}
+function renderChips(){
+  if(!G) return;
+  const el=document.getElementById('active-chips');
+  const godChips=G.godTraits.map(t=>`<div class="pchip god">${t.icon} ${t.name}</div>`).join('');
+  const pwChips=G.unlockedPowers.slice(0,6).map(id=>{const p=ALL_POWERS.find(x=>x.id===id);return p?`<div class="pchip">${p.icon} ${p.name}</div>`:''}).join('');
+  el.innerHTML=godChips+pwChips+(G.unlockedPowers.length>6?`<div class="pchip">+${G.unlockedPowers.length-6}</div>`:'');
+}
+
+// ══════════ PROPERTIES ══════════
+function buildPropertiesTab(){
+  if(!G) return;
+  let total=0;
+  G.ownedProperties.forEach(id=>{const p=PROPERTIES.find(x=>x.id===id);if(p)total+=p.income;});
+  G.passiveIncome=total;
+  document.getElementById('total-rent').textContent=fn(total+G.godPassiveGold);
+  document.getElementById('property-grid').innerHTML=PROPERTIES.map(p=>{
+    const owned=G.ownedProperties.includes(p.id);
+    return `<div class="prop-card ${owned?'owned':''}">
+      <div class="prop-icon">${p.icon}</div><h4>${p.name}</h4>
+      <p>${p.desc}</p>
+      <div class="pincome">💰 +${fn(p.income)}/ação</div>
+      <div style="color:#888;font-size:.65rem">💵 ${fn(p.price)}🪙</div>
+      ${owned?'<div style="color:#2ecc71;font-size:.65rem;margin-top:.25rem">✅ Sua</div>':`<button class="btn btn-gold" style="margin-top:.35rem;font-size:.62rem;padding:.3rem" onclick="buyProp('${p.id}')">Comprar</button>`}
+    </div>`;
+  }).join('');
+}
+function buyProp(id){
+  const p=PROPERTIES.find(x=>x.id===id);if(!p||!G) return;
+  if(G.gold<p.price){log(`Precisa de ${fn(p.price)} ouro!`,'log-system');return;}
+  G.gold-=p.price; G.ownedProperties.push(id); G.passiveIncome+=p.income;
+  log(`🏠 Comprou ${p.icon} ${p.name}! +${p.income}/ação`,'log-loot');
+  buildPropertiesTab(); renderAll();
+}
+function collectRent(){
+  if(!G) return;
+  const t=G.passiveIncome+G.godPassiveGold;
+  if(t<=0){log('Sem renda. Compre propriedades!','log-system');return;}
+  G.gold+=t; G.totalGoldEarned+=t;
+  log(`💰 Coletou ${fn(t)} ouro de rendas!`,'log-loot');
+  renderAll();
+}
+
+// ══════════ SHOP ══════════
+function buildShopTab(){
+  if(!G) return;
+  document.getElementById('shop-grid').innerHTML=SHOP_ITEMS.map(it=>`
+    <div class="shop-item">
+      <div class="s-icon">${it.icon}</div><h4>${it.name}</h4>
+      <p>${it.desc}</p><div class="sprice">🪙 ${fn(it.price)}</div>
+      <button class="btn btn-gold" style="font-size:.65rem;padding:.35rem" onclick="buyItem('${it.id}')">Comprar</button>
+    </div>`).join('');
+}
+function buyItem(id){
+  const it=SHOP_ITEMS.find(x=>x.id===id);if(!it||!G) return;
+  if(G.gold<it.price){log(`Precisa de ${fn(it.price)} ouro!`,'log-system');return;}
+  G.gold-=it.price; applyItem(it);
+  log(`🛒 Comprou: ${it.icon} ${it.name}!`,'log-loot');
+  renderAll(); buildFicha();
+}
+function applyItem(it){
+  switch(it.id){
+    case 'hp_pot': G.hp=Math.min(G.maxHp,G.hp+50); break;
+    case 'mp_pot': G.mp=Math.min(G.maxMp,G.mp+40); break;
+    case 'elixir': G.hp=G.maxHp;G.mp=G.maxMp; break;
+    case 'xp_scroll': G.xp+=500;checkLevelUp(); break;
+    case 'sword': G.atk+=25; break;
+    case 'staff': G.mag+=30; break;
+    case 'armor': G.def+=20; break;
+    case 'boots': G.agi+=20; break;
+    case 'ring': G.luck+=30; break;
+    case 'tome': G.powerPoints+=3; break;
+  }
+}
+
+// ══════════ FICHA ══════════
+function buildFicha(){
+  if(!G) return;
+  document.getElementById('ficha-grid').innerHTML=`
+  <div class="ficha-card">
+    <h4>📊 Status</h4>
+    ${fr('Nível',G.level)}${fr('HP',G.hp+'/'+G.maxHp)}
+    ${fr('MP',G.mp+'/'+G.maxMp)}${fr('XP',G.xp+'/'+G.xpNeeded)}
+  </div>
+  <div class="ficha-card">
+    <h4>⚔️ Atributos</h4>
+    ${fr('ATK',G.atk)}${fr('DEF',G.def)}
+    ${fr('MAG',G.mag)}${fr('AGI',G.agi)}
+    ${fr('SORTE',G.luck)}${fr('CRIT',G.crit+'%')}
+  </div>
+  <div class="ficha-card">
+    <h4>💰 Riqueza</h4>
+    ${fr('Ouro',fn(G.gold))}${fr('Total',fn(G.totalGoldEarned))}
+    ${fr('Props',G.ownedProperties.length)}${fr('Renda',fn(G.passiveIncome+G.godPassiveGold)+'/ação')}
+  </div>
+  <div class="ficha-card">
+    <h4>📜 Histórico</h4>
+    ${fr('Mortes',G.kills)}${fr('Dano',fn(G.totalDamageDealt))}
+    ${fr('Poderes',G.unlockedPowers.length)}${fr('Traits',G.godTraits.length)}
+    ${fr('Ações',G.actionsCount)}${fr('P.Poder',G.powerPoints)}
+  </div>`;
+}
+function fr(l,v){return `<div class="frow"><span>${l}</span><span class="fv">${v}</span></div>`;}
+
+// ══════════ QUESTS ══════════
+function updQKill(){if(!G)return;G.quests.filter(q=>q.type==='kill'&&!q.done).forEach(q=>q.prog++);}
+function updQGold(a){if(!G)return;G.quests.filter(q=>q.type==='gold'&&!q.done).forEach(q=>q.prog+=a);}
+function updQPower(){if(!G)return;G.quests.filter(q=>q.type==='power'&&!q.done).forEach(q=>q.prog++);}
+function checkQuests(){
+  if(!G) return;
+  G.quests.forEach(q=>{
+    if(!q.done&&q.prog>=q.goal){
+      q.done=true;
+      if(q.reward.xp) G.xp+=q.reward.xp;
+      if(q.reward.gold) G.gold+=q.reward.gold;
+      if(q.reward.pp) G.powerPoints+=q.reward.pp;
+      log(`🏆 Missão completa: ${q.name}!`,'log-level');
+      checkLevelUp();
+    }
+  });
+}
+
+// ══════════ MODAL ══════════
+function showModal(t,b){
+  document.getElementById('modal-title').textContent=t;
+  document.getElementById('modal-body').innerHTML=b;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+// ══════════ LOG ══════════
+function log(msg,cls='log-system'){
+  const l=document.getElementById('log');
+  const p=document.createElement('p');p.className=cls;p.textContent=msg;
+  l.appendChild(p);l.scrollTop=l.scrollHeight;
+}
+
+// ══════════ BANNER ══════════
+function dismissBanner(){document.getElementById('install-banner').classList.add('hidden');}
+
+// ══════════════════════════════════════
+//   GOD MODE
+// ══════════════════════════════════════
+function toggleGodMode(){
+  const p=document.getElementById('god-panel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')){buildGodPanel();godLog('Modo Deus ativado. Você controla tudo.');}
+}
+function buildGodPanel(){
+  if(!G) return;
+  buildGodStats(); buildGodPowers(); buildGodProps();
+  refreshTraits();
+}
+function buildGodStats(){
+  const stats=[
+    {l:'⚡ ATK',k:'atk'},{l:'🛡️ DEF',k:'def'},{l:'🔮 MAG',k:'mag'},
+    {l:'💨 AGI',k:'agi'},{l:'🍀 SORTE',k:'luck'},{l:'⚡ CRIT%',k:'crit'},
+    {l:'❤️ HP Máx',k:'maxHp'},{l:'💙 MP Máx',k:'maxMp'},
+    {l:'🪙 Ouro',k:'gold'},{l:'📈 Nível',k:'level'},
+    {l:'✨ XP',k:'xp'},{l:'🔮 Pts',k:'powerPoints'},
+  ];
+  document.getElementById('god-stat-grid').innerHTML=stats.map(s=>`
+    <div class="god-stat-row">
+      <label>${s.l}</label>
+      <input type="number" id="gsi-${s.k}" value="${G[s.k]||0}" min="0">
+    </div>`).join('');
+}
+function godApplyStats(){
+  ['atk','def','mag','agi','luck','crit','maxHp','maxMp','gold','level','xp','powerPoints'].forEach(k=>{
+    const el=document.getElementById('gsi-'+k);
+    if(el) G[k]=parseInt(el.value)||0;
+  });
+  G.hp=Math.min(G.hp,G.maxHp);G.mp=Math.min(G.mp,G.maxMp);
+  renderAll();buildFicha();godLog('✅ Atributos aplicados!');
+  log('👁️ [DEUS] Atributos alterados.','log-god');
+}
+function godMaxStats(){
+  ['atk','def','mag','agi','luck'].forEach(k=>G[k]=999);
+  G.crit=75;G.maxHp=9999;G.hp=9999;G.maxMp=9999;G.mp=9999;G.powerPoints+=99;
+  renderAll();buildFicha();buildGodStats();godLog('🔼 Stats maximizados!');
+  log('👁️ [DEUS] Stats divinos!','log-god');
+}
+function godAddGold(){G.gold+=10000;G.totalGoldEarned+=10000;renderAll();godLog('+10.000 ouro!');}
+function godAddXP(){G.xp+=G.xpNeeded*2;checkLevelUp();godLog('Level up forçado!');}
+function godFullHeal(){G.hp=G.maxHp;G.mp=G.maxMp;renderAll();godLog('❤️ HP/MP cheio!');}
+function godAddPP(){G.powerPoints+=20;renderAll();buildPowersTab();godLog('+20 pontos de poder!');}
+
+// TRAIT
+function godCreateTrait(){
+  const name=document.getElementById('trait-name').value.trim();
+  const desc=document.getElementById('trait-desc').value.trim();
+  const icon=document.getElementById('trait-icon').value.trim()||'✨';
+  const type=document.getElementById('trait-type').value;
+  const bAtk=parseInt(document.getElementById('trait-atk').value)||0;
+  const bMag=parseInt(document.getElementById('trait-mag').value)||0;
+  const bDef=parseInt(document.getElementById('trait-def').value)||0;
+  const bAgi=parseInt(document.getElementById('trait-agi').value)||0;
+  const bLuck=parseInt(document.getElementById('trait-luck').value)||0;
+  const bGold=parseInt(document.getElementById('trait-gold').value)||0;
+  if(!name){godLog('❌ Nome obrigatório!');return;}
+  const t={name,desc:desc||'Poder divino.',icon,type,bAtk,bMag,bDef,bAgi,bLuck,bGold,id:'ct_'+Date.now()};
+  G.godTraits.push(t);
+  G.atk+=bAtk;G.mag+=bMag;G.def+=bDef;G.agi+=bAgi;G.luck+=bLuck;G.godPassiveGold+=bGold;
+  refreshTraits();renderChips();renderAll();
+  godLog(`✨ Trait "${name}" equipado! ATK+${bAtk} MAG+${bMag} DEF+${bDef} AGI+${bAgi} SORT+${bLuck} 💰+${bGold}`);
+  log(`👁️ [DEUS] Trait ${icon} ${name} equipado!`,'log-god');
+  ['trait-name','trait-desc','trait-icon','trait-atk','trait-mag','trait-def','trait-agi','trait-luck','trait-gold'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+}
+function godRemoveTrait(id){
+  const t=G.godTraits.find(x=>x.id===id);if(!t)return;
+  G.atk-=t.bAtk;G.mag-=t.bMag;G.def-=t.bDef;G.agi-=t.bAgi;G.luck-=t.bLuck;G.godPassiveGold-=t.bGold;
+  G.godTraits=G.godTraits.filter(x=>x.id!==id);
+  refreshTraits();renderChips();renderAll();godLog(`🗑️ Trait "${t.name}" removido.`);
+}
+function refreshTraits(){
+  if(!G)return;
+  document.getElementById('trait-count').textContent=G.godTraits.length;
+  const el=document.getElementById('custom-traits-list');
+  el.innerHTML=G.godTraits.length===0
+    ?'<span style="font-size:.68rem;color:#664466;font-style:italic">Nenhum trait...</span>'
+    :G.godTraits.map(t=>`<div class="ctrait-tag" title="${t.desc}">${t.icon} ${t.name}<span class="del" onclick="godRemoveTrait('${t.id}')">✕</span></div>`).join('');
+}
+
+// UNLOCK POWERS
+function buildGodPowers(){
+  document.getElementById('god-powers-grid').innerHTML=ALL_POWERS.map(p=>{
+    const owned=G.unlockedPowers.includes(p.id);
+    return `<div class="god-power-btn ${owned?'unlocked':''}" onclick="godUnlockPower('${p.id}')">
+      <span class="gpi">${p.icon}</span><span class="gpn">${p.name}${owned?' ✓':''}</span>
+    </div>`;
+  }).join('');
+}
+function godUnlockPower(id){
+  const p=ALL_POWERS.find(x=>x.id===id);if(!p)return;
+  if(!G.unlockedPowers.includes(id)){
+    G.unlockedPowers.push(id);G.powerLevels[id]=1;applyPE(p,1);
+    godLog(`🔮 "${p.name}" desbloqueado!`);log(`👁️ [DEUS] ${p.icon} ${p.name} obtido!`,'log-god');
+  } else {
+    G.powerLevels[id]++;applyPE(p,0.5);
+    godLog(`⬆️ "${p.name}" → Nv.${G.powerLevels[id]}!`);
+  }
+  buildPowersTab();buildGodPowers();renderAll();renderChips();
+}
+
+// PROPS
+function buildGodProps(){
+  document.getElementById('god-props-list').innerHTML=PROPERTIES.map(p=>{
+    const owned=G.ownedProperties.includes(p.id);
+    return `<button class="btn-god-sm" onclick="godGrantProp('${p.id}')" style="${owned?'opacity:.5':''}">${p.icon} ${p.name}${owned?' ✓':''}</button>`;
+  }).join('');
+}
+function godGrantProp(id){
+  if(G.ownedProperties.includes(id)){godLog('Já possui!');return;}
+  G.ownedProperties.push(id);
+  const p=PROPERTIES.find(x=>x.id===id);G.passiveIncome+=p.income;
+  godLog(`🏛️ "${p.name}" concedida! +${p.income}/ação`);
+  log(`👁️ [DEUS] ${p.icon} ${p.name} concedida!`,'log-god');
+  buildGodProps();buildPropertiesTab();renderAll();
+}
+
+// CHEATS
+function cheat(type){
+  if(!G)return;
+  switch(type){
+    case 'megagold': G.gold+=1000000;G.totalGoldEarned+=1000000;godLog('💰 +1.000.000 ouro!');log('👁️ [DEUS] +1M ouro!','log-loot');break;
+    case 'allpowers':
+      ALL_POWERS.forEach(p=>{if(!G.unlockedPowers.includes(p.id)){G.unlockedPowers.push(p.id);G.powerLevels[p.id]=5;applyPE(p,1);}});
+      godLog('🔮 Todos os poderes Lv.5!');log('👁️ [DEUS] Todos poderes!','log-god');
+      buildPowersTab();buildGodPowers();renderChips();break;
+    case 'allprops':
+      PROPERTIES.forEach(p=>{if(!G.ownedProperties.includes(p.id)){G.ownedProperties.push(p.id);G.passiveIncome+=p.income;}});
+      godLog('🏛️ Todas as propriedades!');log('👁️ [DEUS] Império completo!','log-god');
+      buildGodProps();buildPropertiesTab();break;
+    case 'godstats':
+      ['atk','def','mag','agi','luck'].forEach(k=>G[k]=9999);
+      G.crit=99;G.maxHp=99999;G.hp=99999;G.maxMp=99999;G.mp=99999;
+      godLog('📊 Stats 9999!');log('👁️ [DEUS] Você é um deus!','log-god');
+      buildGodStats();buildFicha();break;
+    case 'level100':
+      G.level=100;G.xp=0;G.xpNeeded=999999;G.powerPoints+=200;
+      godLog('✨ Nível 100!');log('👁️ [DEUS] Nível 100!','log-god');buildFicha();break;
+    case 'resetall':
+      if(confirm('Resetar tudo?')){
+        G=freshState(G.cls,G.name);
+        renderAll();buildPowersTab();buildPropertiesTab();buildFicha();buildShopTab();
+        godLog('🔄 Reset total.');log('👁️ [DEUS] Reset.','log-god');
+      }
+      break;
+  }
+  renderAll();
+}
+function godLog(msg){const e=document.getElementById('god-log');e.innerHTML+=`<span style="color:#ff88ff">[⚡]</span> ${msg}<br>`;e.scrollTop=e.scrollHeight;}
+
+// ══════════ SERVICE WORKER (offline) ══════════
+if('serviceWorker' in navigator){
+  const swCode=`
+const CACHE='rpg-v1';
+self.addEventListener('install',e=>{self.skipWaiting();});
+self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+  const swBlob=new Blob([swCode],{type:'application/javascript'});
+  const swURL=URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(()=>{});
+}
+</script>
+</body>
+</html>

@@ -431,6 +431,7 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
   </div>
 
   <button class="btn btn-gold" style="max-width:280px;font-size:1rem;padding:.75rem" onclick="showScreen('screen-create')">▶ COMEÇAR AVENTURA</button>
+  <button class="btn btn-green" id="btn-continue" style="max-width:280px;font-size:1rem;padding:.75rem;display:none" onclick="continueGame()">▶ CONTINUAR JOGO</button>
   <p style="font-size:.7rem;color:#443322;font-style:italic">✨ No jogo: toque em 👁️ para o Modo Deus</p>
 </div>
 
@@ -568,6 +569,7 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
     <button class="bnav-btn" onclick="switchTab('shop')"><span class="bnav-icon">🛒</span>Loja</button>
     <button class="bnav-btn" onclick="switchTab('ficha')"><span class="bnav-icon">📜</span>Ficha</button>
     <button class="bnav-btn god-nav" onclick="toggleGodMode()"><span class="bnav-icon">👁️</span>Deus</button>
+    <button class="bnav-btn" onclick="manualSave()" title="Salvar"><span class="bnav-icon">💾</span>Salvar</button>
   </div>
 </div>
 
@@ -772,6 +774,33 @@ const SHOP_ITEMS=[
 // ══════════ STATE ══════════
 let G=null, selectedClass=null, currentZone=ZONES[0], currentEnemy=null, inCombat=false, cooldown=false;
 
+// ══════════ SAVE / LOAD ══════════
+const SAVE_KEY='rpg-infinito-save';
+function saveGame(){
+  if(!G) return;
+  try{
+    const data={G,currentZone:currentZone.id};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(!data.G||!data.G.cls) return false;
+    G=data.G;
+    // Re-attach class reference (stored as plain object)
+    const cls=CLASSES.find(c=>c.id===G.cls.id);
+    if(cls) G.cls=cls;
+    currentZone=ZONES.find(z=>z.id===data.currentZone)||ZONES[0];
+    return true;
+  }catch(e){return false;}
+}
+function deleteSave(){
+  localStorage.removeItem(SAVE_KEY);
+}
+
 function freshState(cls,name){
   const b=cls.bonus||{};
   return{
@@ -797,6 +826,21 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
   if(id==='screen-create') buildClassGrid();
 }
+function continueGame(){
+  if(!loadGame()) return;
+  showScreen('screen-game');
+  renderAll(); buildPowersTab(); buildPropertiesTab(); buildShopTab(); buildFicha();
+  buildGodPanel();
+  document.getElementById('zone-icon').textContent=currentZone.icon;
+  document.getElementById('zone-name').textContent=currentZone.name;
+  document.getElementById('zone-desc').textContent=currentZone.desc;
+  log(`📂 Jogo carregado! Bem-vindo de volta, ${G.name}!`,'log-info');
+  dismissBanner();
+}
+function manualSave(){
+  saveGame();
+  log('💾 Jogo salvo!','log-info');
+}
 function buildClassGrid(){
   const g=document.getElementById('class-grid');
   g.innerHTML=CLASSES.map(c=>`<div class="class-card" id="cc-${c.id}" onclick="selectClass('${c.id}')"><div class="icon">${c.icon}</div><h3>${c.name}</h3><p>${c.desc}</p></div>`).join('');
@@ -816,6 +860,7 @@ function startGame(){
   buildGodPanel();
   log(`⚔️ ${nm} o ${selectedClass.name} inicia sua lenda!`,'log-info');
   dismissBanner();
+  saveGame();
 }
 
 // ══════════ RENDER ══════════
@@ -877,7 +922,7 @@ function doAction(type){
     case 'rest':    actRest(); break;
     case 'steal':   actSteal(); break;
   }
-  checkQuests(); renderAll();
+  checkQuests(); renderAll(); saveGame();
 }
 function actExplore(){
   if(inCombat){log('Termine o combate primeiro!','log-combat');return;}
@@ -918,7 +963,7 @@ function actHeal(){
 }
 function actFlee(){
   if(!inCombat){log('Não está em combate.','log-system');return;}
-  if(Math.random()<0.55+(G.agi*0.01)){log('💨 Fugiu!','log-info');endCombat();}
+  if(Math.random()<Math.min(0.9,0.45+(G.agi*0.01))){log('💨 Fugiu!','log-info');endCombat();}
   else{log('💨 Fuga falhou!','log-combat');enemyAtk();}
 }
 function actRest(){
@@ -938,7 +983,7 @@ function actSteal(){
 }
 function enemyAtk(){
   if(!currentEnemy) return;
-  const dmg=Math.max(1,Math.floor(currentEnemy.atk*(1-G.def*0.005))+Math.floor(Math.random()*8));
+  const dmg=Math.max(1,Math.floor(currentEnemy.atk*(1-Math.min(0.75,G.def*0.002)))+Math.floor(Math.random()*8));
   G.hp-=dmg;
   log(`${currentEnemy.icon} ${currentEnemy.n} causou ${dmg} de dano.`,'log-combat');
   if(G.hp<=0){G.hp=0;playerDeath();}
@@ -1140,7 +1185,7 @@ function buildFicha(){
   </div>
   <div class="ficha-card">
     <h4>📜 Histórico</h4>
-    ${fr('Mortes',G.kills)}${fr('Dano',fn(G.totalDamageDealt))}
+    ${fr('Abates',G.kills)}${fr('Dano',fn(G.totalDamageDealt))}
     ${fr('Poderes',G.unlockedPowers.length)}${fr('Traits',G.godTraits.length)}
     ${fr('Ações',G.actionsCount)}${fr('P.Poder',G.powerPoints)}
   </div>`;
@@ -1177,7 +1222,9 @@ function closeModal(){document.getElementById('modal').classList.remove('open');
 function log(msg,cls='log-system'){
   const l=document.getElementById('log');
   const p=document.createElement('p');p.className=cls;p.textContent=msg;
-  l.appendChild(p);l.scrollTop=l.scrollHeight;
+  l.appendChild(p);
+  while(l.children.length>100) l.removeChild(l.firstChild);
+  l.scrollTop=l.scrollHeight;
 }
 
 // ══════════ BANNER ══════════
@@ -1329,12 +1376,33 @@ function cheat(type){
         G=freshState(G.cls,G.name);
         renderAll();buildPowersTab();buildPropertiesTab();buildFicha();buildShopTab();
         godLog('🔄 Reset total.');log('👁️ [DEUS] Reset.','log-god');
+        deleteSave();
       }
       break;
   }
   renderAll();
 }
-function godLog(msg){const e=document.getElementById('god-log');e.innerHTML+=`<span style="color:#ff88ff">[⚡]</span> ${msg}<br>`;e.scrollTop=e.scrollHeight;}
+function godLog(msg){
+  const e=document.getElementById('god-log');
+  const line=document.createElement('span');
+  line.innerHTML=`<span style="color:#ff88ff">[⚡]</span> ${msg}<br>`;
+  e.appendChild(line);
+  while(e.children.length>50) e.removeChild(e.firstChild);
+  e.scrollTop=e.scrollHeight;
+}
+
+// ══════════ INIT ══════════
+window.addEventListener('DOMContentLoaded',()=>{
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(raw){
+    try{
+      const data=JSON.parse(raw);
+      if(data.G&&data.G.cls){
+        document.getElementById('btn-continue').style.display='block';
+      }
+    }catch(e){}
+  }
+});
 
 // ══════════ SERVICE WORKER (offline) ══════════
 if('serviceWorker' in navigator){

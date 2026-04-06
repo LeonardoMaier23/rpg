@@ -402,11 +402,82 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#252545;border-radius:2px}
+
+/* STATUS EFFECTS */
+.status-badge{display:inline-block;font-size:.62rem;padding:.1rem .4rem;border-radius:8px;margin:.1rem}
+.status-poison{background:#1a3a0a;color:#55cc33;border:1px solid #3a8a22}
+.status-burn{background:#3a1000;color:#ff6633;border:1px solid #aa3300}
+.status-bleed{background:#3a0010;color:#ff4466;border:1px solid #aa1133}
+.status-stun{background:#1a1a3a;color:#6688ff;border:1px solid #2244aa}
+
+/* BOSS CARD */
+.boss-card{
+  background:linear-gradient(135deg,#1a0520,#250830);
+  border:2px solid var(--purple);border-radius:12px;padding:.9rem;
+  margin-bottom:.8rem;display:none;
+  box-shadow:0 0 20px #9b59b644;
+}
+.boss-card.visible{display:block;animation:bossAppear .4s ease}
+@keyframes bossAppear{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.boss-card h3{color:var(--purple);font-size:.95rem}
+.boss-hp-bar{height:12px;background:#200;border-radius:6px;overflow:hidden;margin:.4rem 0}
+.boss-hp-fill{height:100%;background:linear-gradient(90deg,#6b008b,#cc44ff);border-radius:6px;transition:width .3s}
+
+/* ACHIEVEMENTS */
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.ach-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.65rem;display:flex;gap:.5rem;align-items:flex-start;transition:all .2s
+}
+.ach-card.done{border-color:#f0c040;background:linear-gradient(135deg,#1a1500,#0d0d00)}
+.ach-card.done .ach-icon{filter:none}
+.ach-card .ach-icon{font-size:1.4rem;filter:grayscale(1);opacity:.4;flex-shrink:0}
+.ach-card.done .ach-icon{filter:none;opacity:1}
+.ach-card h5{font-size:.68rem;color:#887766;margin:0 0 .1rem}
+.ach-card.done h5{color:var(--gold)}
+.ach-card p{font-size:.6rem;color:#554433;line-height:1.3}
+
+/* TOAST NOTIFICATION */
+.toast{
+  position:fixed;top:calc(var(--safe-top) + 70px);left:50%;transform:translateX(-50%) translateY(-20px);
+  background:linear-gradient(135deg,#1a0a2e,#2a1040);
+  border:1px solid var(--gold);border-radius:10px;
+  padding:.6rem 1.1rem;font-family:'Cinzel',serif;font-size:.72rem;color:var(--gold);
+  z-index:900;opacity:0;transition:all .35s;white-space:nowrap;
+  box-shadow:0 4px 20px #0006;pointer-events:none
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* STREAK BADGE */
+.streak-badge{
+  display:inline-block;background:linear-gradient(135deg,#7b1a00,#ff4400);
+  border-radius:20px;padding:.15rem .5rem;font-size:.62rem;color:#fff;
+  font-family:'Cinzel',serif;margin-left:.4rem;animation:streakPulse .6s infinite alternate
+}
+@keyframes streakPulse{from{box-shadow:0 0 4px #ff4400}to{box-shadow:0 0 12px #ff4400}}
+
+/* QUESTS */
+.quest-card{
+  background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+  padding:.8rem;margin-bottom:.6rem;
+}
+.quest-card.done{border-color:#2ecc71;opacity:.6}
+.quest-prog-bar{height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden;margin:.4rem 0}
+.quest-prog-fill{height:100%;background:linear-gradient(90deg,#1a4a8b,#3498db);border-radius:3px;transition:width .3s}
+
+/* SHOP CATEGORIES */
+.shop-cat-btn{
+  background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  padding:.3rem .7rem;font-size:.65rem;font-family:'Cinzel',serif;color:#887766;
+  cursor:pointer;transition:all .15s
+}
+.shop-cat-btn.active{border-color:var(--gold);color:var(--gold);background:#1a1a2e}
 </style>
 </head>
 <body>
 
 <div class="lup-flash" id="lvl-flash"></div>
+<div class="toast" id="toast"></div>
 
 <!-- INSTALL BANNER -->
 <div id="install-banner">
@@ -431,6 +502,7 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
   </div>
 
   <button class="btn btn-gold" style="max-width:280px;font-size:1rem;padding:.75rem" onclick="showScreen('screen-create')">▶ COMEÇAR AVENTURA</button>
+  <button class="btn btn-green" id="btn-continue" style="max-width:280px;font-size:1rem;padding:.75rem;display:none" onclick="continueGame()">▶ CONTINUAR JOGO</button>
   <p style="font-size:.7rem;color:#443322;font-style:italic">✨ No jogo: toque em 👁️ para o Modo Deus</p>
 </div>
 
@@ -500,6 +572,18 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
         <div class="attr-pill"><span>⚡CRIT</span><b id="stat-crit">5%</b></div>
       </div>
 
+      <div id="status-display" style="margin-bottom:.4rem;min-height:18px"></div>
+      <div id="streak-display" style="margin-bottom:.4rem;min-height:18px"></div>
+
+      <div class="boss-card" id="boss-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+          <h3 id="boss-name">BOSS</h3>
+          <span style="font-size:.65rem;color:#cc88ff;font-family:'Cinzel',serif">⚡ BOSS</span>
+        </div>
+        <div class="boss-hp-bar"><div class="boss-hp-fill" id="boss-hp-fill" style="width:100%"></div></div>
+        <div style="font-size:.68rem;color:#cc88ff">💜 <span id="boss-hp-val">0</span>/<span id="boss-hp-max">0</span></div>
+      </div>
+
       <div class="enemy-card" id="enemy-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
           <h3 id="enemy-name">Goblin</h3>
@@ -556,16 +640,38 @@ h1,h2,h3,h4{font-family:'Cinzel',serif}
     <div id="tab-ficha" style="display:none">
       <h3 style="color:var(--gold);font-size:.85rem;margin-bottom:.7rem">📜 Ficha</h3>
       <div class="ficha-grid" id="ficha-grid"></div>
+      <div id="prestige-section" style="margin-top:1rem;display:none">
+        <div style="background:linear-gradient(135deg,#1a0a2e,#2a0a3e);border:2px solid var(--purple);border-radius:12px;padding:1rem;text-align:center">
+          <div style="font-size:1.5rem">♾️</div>
+          <h4 style="color:var(--purple);font-size:.85rem;margin:.3rem 0">PRESTÍGIO DISPONÍVEL</h4>
+          <p style="font-size:.7rem;color:#887766;margin-bottom:.7rem">Reinicie como Nível 1 com +10% em todos os stats permanentemente. Prestígio atual: <span id="prestige-count" style="color:var(--purple)">0</span></p>
+          <button class="btn btn-purple" style="max-width:200px;margin:0 auto" onclick="doPrestige()">♾️ REALIZAR PRESTÍGIO</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONQUISTAS -->
+    <div id="tab-achievements" style="display:none">
+      <h3 style="color:var(--gold);font-size:.85rem;margin-bottom:.7rem">🏆 Conquistas</h3>
+      <div id="achievements-grid"></div>
+    </div>
+
+    <!-- MISSÕES -->
+    <div id="tab-quests" style="display:none">
+      <h3 style="color:var(--gold);font-size:.85rem;margin-bottom:.7rem">📋 Missões</h3>
+      <div id="quests-list"></div>
     </div>
 
   </div>
 
   <!-- BOTTOM NAV -->
   <div id="bottom-nav">
-    <button class="bnav-btn active" onclick="switchTab('adventure')"><span class="bnav-icon">⚔️</span>Aventura</button>
+    <button class="bnav-btn active" onclick="switchTab('adventure')"><span class="bnav-icon">⚔️</span>Batalha</button>
     <button class="bnav-btn" onclick="switchTab('powers')"><span class="bnav-icon">🔮</span>Poderes</button>
-    <button class="bnav-btn" onclick="switchTab('properties')"><span class="bnav-icon">🏛️</span>Império</button>
     <button class="bnav-btn" onclick="switchTab('shop')"><span class="bnav-icon">🛒</span>Loja</button>
+    <button class="bnav-btn" onclick="switchTab('properties')"><span class="bnav-icon">🏛️</span>Império</button>
+    <button class="bnav-btn" onclick="switchTab('quests')"><span class="bnav-icon">📋</span>Missões</button>
+    <button class="bnav-btn" onclick="switchTab('achievements')"><span class="bnav-icon">🏆</span>Conquistas</button>
     <button class="bnav-btn" onclick="switchTab('ficha')"><span class="bnav-icon">📜</span>Ficha</button>
     <button class="bnav-btn god-nav" onclick="toggleGodMode()"><span class="bnav-icon">👁️</span>Deus</button>
   </div>
@@ -714,14 +820,73 @@ const ZONES=[
   {id:8,icon:'👁️',name:'Trono dos Deuses',desc:'Infinito',minLvl:1,xm:15,gm:15},
 ];
 const ENEMIES={
-  1:[{n:'Goblin',icon:'👺',bHp:40,bAtk:5},{n:'Lobo',icon:'🐺',bHp:55,bAtk:8},{n:'Bandido',icon:'🗡️',bHp:70,bAtk:10}],
-  2:[{n:'Troll',icon:'🧌',bHp:100,bAtk:15},{n:'Harpia',icon:'🦅',bHp:80,bAtk:18}],
-  3:[{n:'Escorpião',icon:'🦂',bHp:130,bAtk:22},{n:'Múmia',icon:'🧟',bHp:150,bAtk:20}],
-  4:[{n:'Kraken',icon:'🐙',bHp:250,bAtk:35},{n:'Sereia Maligna',icon:'🧜',bHp:200,bAtk:30}],
-  5:[{n:'Demônio',icon:'👿',bHp:400,bAtk:55},{n:'Fênix Negra',icon:'🦅',bHp:380,bAtk:50}],
-  6:[{n:'Cavaleiro do Caos',icon:'🏇',bHp:700,bAtk:80},{n:'Lich',icon:'💀',bHp:600,bAtk:90}],
-  7:[{n:'Entidade Cósmica',icon:'🌀',bHp:1500,bAtk:150},{n:'Deus Menor',icon:'🌟',bHp:1200,bAtk:180}],
-  8:[{n:'Outro Deus',icon:'👁️',bHp:5000,bAtk:400},{n:'O Vazio Eterno',icon:'🌑',bHp:9999,bAtk:999}],
+  1:[
+    {n:'Goblin',icon:'👺',bHp:40,bAtk:5,drop:'🪙'},
+    {n:'Lobo',icon:'🐺',bHp:55,bAtk:8,drop:'🦷'},
+    {n:'Bandido',icon:'🗡️',bHp:70,bAtk:10,drop:'🪙'},
+    {n:'Rato Gigante',icon:'🐀',bHp:35,bAtk:4,drop:'🧀'},
+    {n:'Aranha',icon:'🕷️',bHp:45,bAtk:6,status:'poison'},
+    {n:'Esqueleto',icon:'💀',bHp:60,bAtk:9,drop:'🦴'},
+  ],
+  2:[
+    {n:'Troll',icon:'🧌',bHp:100,bAtk:15,drop:'🪨'},
+    {n:'Harpia',icon:'🦅',bHp:80,bAtk:18,drop:'🪶'},
+    {n:'Ogro',icon:'👹',bHp:120,bAtk:14,drop:'🪙'},
+    {n:'Urso Polar',icon:'🐻‍❄️',bHp:110,bAtk:16,drop:'🧊'},
+    {n:'Guerreiro Bárbaro',icon:'🪓',bHp:95,bAtk:20,status:'bleed'},
+  ],
+  3:[
+    {n:'Escorpião Gigante',icon:'🦂',bHp:130,bAtk:22,status:'poison'},
+    {n:'Múmia',icon:'🧟',bHp:150,bAtk:20,drop:'📜'},
+    {n:'Serpente do Deserto',icon:'🐍',bHp:110,bAtk:24,status:'poison'},
+    {n:'Ladrao das Areias',icon:'🏺',bHp:140,bAtk:21,drop:'🪙'},
+    {n:'Djinn',icon:'🌪️',bHp:160,bAtk:18,status:'burn'},
+  ],
+  4:[
+    {n:'Kraken',icon:'🐙',bHp:250,bAtk:35,drop:'🔱'},
+    {n:'Sereia Maligna',icon:'🧜',bHp:200,bAtk:30,status:'stun'},
+    {n:'Tubarão Demoníaco',icon:'🦈',bHp:220,bAtk:33,drop:'🦷'},
+    {n:'Golem de Coral',icon:'🪸',bHp:280,bAtk:28,drop:'💎'},
+    {n:'Leviata',icon:'🌊',bHp:300,bAtk:32,status:'bleed'},
+  ],
+  5:[
+    {n:'Demônio',icon:'👿',bHp:400,bAtk:55,status:'burn'},
+    {n:'Fênix Negra',icon:'🦅',bHp:380,bAtk:50,status:'burn'},
+    {n:'Ifrit',icon:'🔥',bHp:360,bAtk:58,status:'burn'},
+    {n:'Basilisco',icon:'🐲',bHp:420,bAtk:52,status:'poison'},
+    {n:'Incubo do Vulcão',icon:'😈',bHp:440,bAtk:48,drop:'💎'},
+  ],
+  6:[
+    {n:'Cavaleiro do Caos',icon:'🏇',bHp:700,bAtk:80,status:'bleed'},
+    {n:'Lich',icon:'💀',bHp:600,bAtk:90,status:'poison'},
+    {n:'Vampire Lord',icon:'🧛',bHp:650,bAtk:85,drop:'🩸'},
+    {n:'Golem de Sombra',icon:'🌑',bHp:800,bAtk:75,drop:'💠'},
+    {n:'Inquisidor das Trevas',icon:'⚔️',bHp:720,bAtk:88,status:'stun'},
+  ],
+  7:[
+    {n:'Entidade Cósmica',icon:'🌀',bHp:1500,bAtk:150,drop:'✨'},
+    {n:'Deus Menor',icon:'🌟',bHp:1200,bAtk:180,drop:'💫'},
+    {n:'Arauto do Caos',icon:'🌌',bHp:1800,bAtk:140,status:'stun'},
+    {n:'Espectro Dimensional',icon:'👁️',bHp:1400,bAtk:160,status:'bleed'},
+    {n:'Fragmento do Vazio',icon:'🕳️',bHp:2000,bAtk:130,drop:'💠'},
+  ],
+  8:[
+    {n:'Outro Deus',icon:'👁️',bHp:5000,bAtk:400,drop:'🌟'},
+    {n:'O Vazio Eterno',icon:'🌑',bHp:9999,bAtk:999,drop:'∞'},
+    {n:'Destruidor Primordial',icon:'💥',bHp:8000,bAtk:700,status:'burn'},
+    {n:'Omega Deus',icon:'Ω',bHp:12000,bAtk:800,drop:'🌌'},
+    {n:'O Fim de Tudo',icon:'🌪️',bHp:15000,bAtk:1200,status:'stun'},
+  ],
+};
+const BOSSES={
+  1:{n:'Rei Goblin',icon:'👑',bHp:300,bAtk:18,drop:'💎',reward:{xp:500,gold:300}},
+  2:{n:'Troll Ancião',icon:'🧌',bHp:600,bAtk:32,drop:'💎',reward:{xp:1000,gold:600}},
+  3:{n:'Faraó Amaldiçoado',icon:'𓂀',bHp:1200,bAtk:48,drop:'💎',reward:{xp:2000,gold:1500}},
+  4:{n:'Deus do Mar',icon:'🔱',bHp:2500,bAtk:70,drop:'💠',reward:{xp:4000,gold:3000}},
+  5:{n:'Lorde do Inferno',icon:'🔥',bHp:5000,bAtk:110,drop:'💠',reward:{xp:8000,gold:6000}},
+  6:{n:'Rei das Sombras',icon:'👑',bHp:10000,bAtk:160,drop:'💠',reward:{xp:15000,gold:12000}},
+  7:{n:'Senhor Cósmico',icon:'🌌',bHp:25000,bAtk:280,drop:'🌟',reward:{xp:30000,gold:25000}},
+  8:{n:'DEUS SUPREMO',icon:'☀️',bHp:99999,bAtk:2000,drop:'∞',reward:{xp:100000,gold:100000}},
 };
 const ALL_POWERS=[
   {id:'fireball',tier:1,icon:'🔥',name:'Bola de Fogo',desc:'Dano mágico em área.',cost:2,e:{mag:3}},
@@ -757,38 +922,115 @@ const PROPERTIES=[
   {id:'empire',icon:'🌍',name:'Império',desc:'Poder econômico máximo.',price:2000000,income:50000},
 ];
 const SHOP_ITEMS=[
-  {id:'hp_pot',icon:'🧪',name:'Poção de Vida',desc:'Restaura 50 HP.',price:80},
-  {id:'mp_pot',icon:'💧',name:'Poção de Mana',desc:'Restaura 40 MP.',price:60},
-  {id:'elixir',icon:'⚗️',name:'Elixir',desc:'HP e MP totais.',price:300},
-  {id:'xp_scroll',icon:'📜',name:'Pergaminho XP',desc:'+500 XP.',price:400},
-  {id:'sword',icon:'🗡️',name:'Espada Lendária',desc:'+25 ATK.',price:2500},
-  {id:'staff',icon:'🪄',name:'Cajado Arcano',desc:'+30 MAG.',price:2500},
-  {id:'armor',icon:'🛡️',name:'Armadura Divina',desc:'+20 DEF.',price:2000},
-  {id:'boots',icon:'👢',name:'Botas Fantasma',desc:'+20 AGI.',price:1800},
-  {id:'ring',icon:'💍',name:'Anel da Fortuna',desc:'+30 SORT.',price:3000},
-  {id:'tome',icon:'📚',name:'Tomo Proibido',desc:'+3 pontos poder.',price:5000},
+  // Consumíveis
+  {id:'hp_pot',icon:'🧪',name:'Poção de Vida',desc:'Restaura 50 HP.',price:80,cat:'consumable'},
+  {id:'hp_pot2',icon:'🍷',name:'Poção Superior',desc:'Restaura 200 HP.',price:400,cat:'consumable'},
+  {id:'mp_pot',icon:'💧',name:'Poção de Mana',desc:'Restaura 40 MP.',price:60,cat:'consumable'},
+  {id:'mp_pot2',icon:'🫧',name:'Éter',desc:'Restaura 150 MP.',price:350,cat:'consumable'},
+  {id:'elixir',icon:'⚗️',name:'Elixir',desc:'HP e MP totais.',price:300,cat:'consumable'},
+  {id:'elixir2',icon:'✨',name:'Elixir Divino',desc:'HP/MP + +10 em todos stats.',price:5000,cat:'consumable'},
+  {id:'antidote',icon:'💚',name:'Antídoto',desc:'Cura veneno e sangramento.',price:120,cat:'consumable'},
+  {id:'xp_scroll',icon:'📜',name:'Pergaminho XP',desc:'+500 XP.',price:400,cat:'consumable'},
+  {id:'xp_scroll2',icon:'📖',name:'Tomo de Sabedoria',desc:'+2000 XP.',price:1500,cat:'consumable'},
+  // Armas
+  {id:'sword',icon:'🗡️',name:'Espada Lendária',desc:'+25 ATK.',price:2500,cat:'weapon'},
+  {id:'greatsword',icon:'⚔️',name:'Mandoble Épico',desc:'+50 ATK.',price:8000,cat:'weapon'},
+  {id:'staff',icon:'🪄',name:'Cajado Arcano',desc:'+30 MAG.',price:2500,cat:'weapon'},
+  {id:'grimoire',icon:'📚',name:'Grimório Proibido',desc:'+60 MAG.',price:9000,cat:'weapon'},
+  {id:'dagger',icon:'🔪',name:'Adaga Venenosa',desc:'+15 ATK +15 AGI.',price:2000,cat:'weapon'},
+  // Defesa
+  {id:'armor',icon:'🛡️',name:'Armadura Divina',desc:'+20 DEF.',price:2000,cat:'armor'},
+  {id:'armor2',icon:'🪬',name:'Égide Celestial',desc:'+45 DEF.',price:7000,cat:'armor'},
+  {id:'boots',icon:'👢',name:'Botas Fantasma',desc:'+20 AGI.',price:1800,cat:'armor'},
+  {id:'boots2',icon:'🥾',name:'Botas do Vento',desc:'+40 AGI.',price:6000,cat:'armor'},
+  // Acessórios
+  {id:'ring',icon:'💍',name:'Anel da Fortuna',desc:'+30 SORT.',price:3000,cat:'accessory'},
+  {id:'amulet',icon:'📿',name:'Amuleto do Caos',desc:'+20 ATK +20 MAG.',price:6000,cat:'accessory'},
+  {id:'tome',icon:'📚',name:'Tomo Proibido',desc:'+3 pontos poder.',price:5000,cat:'accessory'},
+  {id:'tome2',icon:'🌟',name:'Tomo Celestial',desc:'+8 pontos poder.',price:15000,cat:'accessory'},
+  {id:'crown',icon:'👑',name:'Coroa do Rei',desc:'+50 em todos os stats.',price:50000,cat:'accessory'},
+];
+const ACHIEVEMENTS=[
+  {id:'first_kill',icon:'⚔️',name:'Primeiro Sangue',desc:'Derrote seu primeiro inimigo.',check:g=>g.kills>=1},
+  {id:'kills_10',icon:'💀',name:'Caçador',desc:'Derrote 10 inimigos.',check:g=>g.kills>=10},
+  {id:'kills_50',icon:'☠️',name:'Exterminador',desc:'Derrote 50 inimigos.',check:g=>g.kills>=50},
+  {id:'kills_100',icon:'💥',name:'Lenda da Guerra',desc:'Derrote 100 inimigos.',check:g=>g.kills>=100},
+  {id:'kills_500',icon:'🌑',name:'Ceifador',desc:'Derrote 500 inimigos.',check:g=>g.kills>=500},
+  {id:'level_10',icon:'🌟',name:'Aventureiro',desc:'Alcance o nível 10.',check:g=>g.level>=10},
+  {id:'level_25',icon:'💫',name:'Veterano',desc:'Alcance o nível 25.',check:g=>g.level>=25},
+  {id:'level_50',icon:'🏆',name:'Lendário',desc:'Alcance o nível 50.',check:g=>g.level>=50},
+  {id:'level_100',icon:'👑',name:'Transcendente',desc:'Alcance o nível 100.',check:g=>g.level>=100},
+  {id:'boss_kill',icon:'🔱',name:'Caçador de Chefes',desc:'Derrote seu primeiro boss.',check:g=>g.bossKills>=1},
+  {id:'boss_5',icon:'🌌',name:'Terror dos Bosses',desc:'Derrote 5 bosses.',check:g=>g.bossKills>=5},
+  {id:'gold_1k',icon:'🪙',name:'Rico',desc:'Acumule 1.000 ouro.',check:g=>g.totalGoldEarned>=1000},
+  {id:'gold_100k',icon:'💰',name:'Milionário',desc:'Acumule 100.000 ouro.',check:g=>g.totalGoldEarned>=100000},
+  {id:'gold_1m',icon:'🌍',name:'Magnata',desc:'Acumule 1.000.000 ouro.',check:g=>g.totalGoldEarned>=1000000},
+  {id:'power_5',icon:'🔮',name:'Aprendiz Arcano',desc:'Aprenda 5 poderes.',check:g=>g.unlockedPowers.length>=5},
+  {id:'power_all',icon:'🌟',name:'Mestre dos Poderes',desc:'Aprenda todos os poderes.',check:g=>g.unlockedPowers.length>=ALL_POWERS.length},
+  {id:'empire',icon:'🌍',name:'Imperador',desc:'Construa um Império.',check:g=>g.ownedProperties.includes('empire')},
+  {id:'prestige1',icon:'♾️',name:'Renascido',desc:'Realize seu primeiro Prestígio.',check:g=>g.prestige>=1},
+  {id:'damage_1m',icon:'💢',name:'Força Divina',desc:'Cause 1.000.000 de dano total.',check:g=>g.totalDamageDealt>=1000000},
 ];
 
 // ══════════ STATE ══════════
-let G=null, selectedClass=null, currentZone=ZONES[0], currentEnemy=null, inCombat=false, cooldown=false;
+let G=null, selectedClass=null, currentZone=ZONES[0], currentEnemy=null, currentBoss=null, inCombat=false, isBossFight=false, cooldown=false, shopCat='consumable';
 
-function freshState(cls,name){
+// ══════════ SAVE / LOAD ══════════
+const SAVE_KEY='rpg-infinito-save';
+function saveGame(){
+  if(!G) return;
+  try{
+    const data={G,currentZone:currentZone.id};
+    localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const data=JSON.parse(raw);
+    if(!data.G||!data.G.cls) return false;
+    G=data.G;
+    // Re-attach class reference (stored as plain object)
+    const cls=CLASSES.find(c=>c.id===G.cls.id);
+    if(cls) G.cls=cls;
+    currentZone=ZONES.find(z=>z.id===data.currentZone)||ZONES[0];
+    return true;
+  }catch(e){return false;}
+}
+function deleteSave(){
+  localStorage.removeItem(SAVE_KEY);
+}
+
+function freshState(cls,name,prestige=0){
   const b=cls.bonus||{};
+  const pb=prestige*0.1; // +10% stats per prestige
   return{
-    name,cls,level:1,xp:0,xpNeeded:100,
-    hp:100+(b.hp||0),maxHp:100+(b.hp||0),
-    mp:50+(b.mp||0),maxMp:50+(b.mp||0),
-    gold:0+(b.gold||0),atk:10+(b.atk||0),def:5+(b.def||0),
-    mag:5+(b.mag||0),agi:5+(b.agi||0),luck:5+(b.luck||0),crit:5,
-    powerPoints:3,unlockedPowers:[],powerLevels:{},
+    name,cls,level:1,xp:0,xpNeeded:100,prestige,
+    hp:Math.floor((100+(b.hp||0))*(1+pb)),maxHp:Math.floor((100+(b.hp||0))*(1+pb)),
+    mp:Math.floor((50+(b.mp||0))*(1+pb)),maxMp:Math.floor((50+(b.mp||0))*(1+pb)),
+    gold:prestige*500+(b.gold||0),
+    atk:Math.floor((10+(b.atk||0))*(1+pb)),
+    def:Math.floor((5+(b.def||0))*(1+pb)),
+    mag:Math.floor((5+(b.mag||0))*(1+pb)),
+    agi:Math.floor((5+(b.agi||0))*(1+pb)),
+    luck:Math.floor((5+(b.luck||0))*(1+pb)),crit:5,
+    powerPoints:3+prestige*2,unlockedPowers:[],powerLevels:{},
     ownedProperties:[],passiveIncome:0,godPassiveGold:0,
-    godTraits:[],kills:0,totalGoldEarned:0,totalDamageDealt:0,actionsCount:0,
-    quests:[
-      {name:'Primeiro Sangue',goal:5,prog:0,type:'kill',reward:{xp:200,gold:100},done:false},
-      {name:'Caçador de Ouro',goal:500,prog:0,type:'gold',reward:{xp:300,pp:2},done:false},
-      {name:'Caminho do Poder',goal:3,prog:0,type:'power',reward:{xp:500,gold:300},done:false},
-    ]
+    godTraits:[],kills:0,bossKills:0,totalGoldEarned:0,totalDamageDealt:0,actionsCount:0,
+    killStreak:0,statusEffect:null,statusTurns:0,
+    achievements:[],
+    quests:generateQuests(1),
   };
+}
+function generateQuests(level){
+  const tier=Math.ceil(level/10);
+  return[
+    {name:'Caçador',goal:5+tier*5,prog:0,type:'kill',reward:{xp:200*tier,gold:100*tier},done:false},
+    {name:'Pilhador',goal:500*tier,prog:0,type:'gold',reward:{xp:300*tier,pp:2},done:false},
+    {name:'Sábio',goal:Math.min(3+tier,ALL_POWERS.length),prog:0,type:'power',reward:{xp:500*tier,gold:300*tier},done:false},
+    {name:'Exterminador',goal:tier*10,prog:0,type:'kill',reward:{xp:1000*tier,gold:500*tier},done:false},
+  ];
 }
 
 // ══════════ SCREENS ══════════
@@ -796,6 +1038,21 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if(id==='screen-create') buildClassGrid();
+}
+function continueGame(){
+  if(!loadGame()) return;
+  showScreen('screen-game');
+  renderAll(); buildPowersTab(); buildPropertiesTab(); buildShopTab(); buildFicha();
+  buildGodPanel(); buildQuestsTab(); buildAchievementsTab();
+  document.getElementById('zone-icon').textContent=currentZone.icon;
+  document.getElementById('zone-name').textContent=currentZone.name;
+  document.getElementById('zone-desc').textContent=currentZone.desc;
+  log(`📂 Jogo carregado! Bem-vindo de volta, ${G.name}!`,'log-info');
+  dismissBanner();
+}
+function manualSave(){
+  saveGame();
+  log('💾 Jogo salvo!','log-info');
 }
 function buildClassGrid(){
   const g=document.getElementById('class-grid');
@@ -813,9 +1070,10 @@ function startGame(){
   G=freshState(selectedClass,nm);
   showScreen('screen-game');
   renderAll(); buildPowersTab(); buildPropertiesTab(); buildShopTab(); buildFicha();
-  buildGodPanel();
+  buildGodPanel(); buildQuestsTab(); buildAchievementsTab();
   log(`⚔️ ${nm} o ${selectedClass.name} inicia sua lenda!`,'log-info');
   dismissBanner();
+  saveGame();
 }
 
 // ══════════ RENDER ══════════
@@ -841,6 +1099,20 @@ function renderAll(){
   document.getElementById('stat-luck').textContent=G.luck;
   document.getElementById('stat-crit').textContent=G.crit+'%';
   renderChips();
+  renderStatusDisplay();
+}
+function renderStatusDisplay(){
+  const sd=document.getElementById('status-display');
+  const strd=document.getElementById('streak-display');
+  if(!sd||!strd) return;
+  if(G.statusEffect){
+    const map={poison:'☠️ Envenenado','burn':'🔥 Em chamas',bleed:'🩸 Sangrando',stun:'💫 Atordoado'};
+    const cls={poison:'status-poison',burn:'status-burn',bleed:'status-bleed',stun:'status-stun'};
+    sd.innerHTML=`<span class="status-badge ${cls[G.statusEffect]}">${map[G.statusEffect]||G.statusEffect} (${G.statusTurns} turnos)</span>`;
+  } else {sd.innerHTML='';}
+  if(G.killStreak>=3){
+    strd.innerHTML=`<span class="streak-badge">🔥 COMBO ×${G.killStreak}</span>`;
+  } else {strd.innerHTML='';}
 }
 function setBar(bid,vid,cur,max,short=false){
   const p=Math.max(0,Math.min(100,(cur/max)*100));
@@ -851,23 +1123,36 @@ function fn(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K
 
 // ══════════ TABS ══════════
 function switchTab(t){
-  const tabs=['adventure','powers','properties','shop','ficha'];
+  const tabs=['adventure','powers','properties','shop','ficha','achievements','quests'];
   tabs.forEach(id=>{const el=document.getElementById('tab-'+id);if(el)el.style.display=id===t?'block':'none';});
-  document.querySelectorAll('.bnav-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['adventure','powers','properties','shop','ficha','god'][i]===t);
+  document.querySelectorAll('.bnav-btn').forEach(b=>{
+    const ot=b.getAttribute('onclick')||'';
+    b.classList.toggle('active',ot.includes(`'${t}'`));
   });
   if(t==='ficha') buildFicha();
   if(t==='properties') buildPropertiesTab();
   if(t==='powers') buildPowersTab();
+  if(t==='achievements') buildAchievementsTab();
+  if(t==='quests') buildQuestsTab();
+}
+
+// ══════════ TOAST ══════════
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
 // ══════════ ACTIONS ══════════
 function doAction(type){
   if(!G||cooldown) return;
-  cooldown=true; setTimeout(()=>cooldown=false,300);
+  cooldown=true; setTimeout(()=>cooldown=false,280);
   G.actionsCount++;
   const rent=G.passiveIncome+G.godPassiveGold;
   if(rent>0){G.gold+=rent;G.totalGoldEarned+=rent;}
+  tickStatus();
   switch(type){
     case 'explore': actExplore(); break;
     case 'attack':  actAttack(); break;
@@ -877,40 +1162,74 @@ function doAction(type){
     case 'rest':    actRest(); break;
     case 'steal':   actSteal(); break;
   }
-  checkQuests(); renderAll();
+  checkQuests(); checkAchievements(); renderAll(); saveGame();
 }
+
+function getActiveEnemy(){return isBossFight?currentBoss:currentEnemy;}
+
 function actExplore(){
-  if(inCombat){log('Termine o combate primeiro!','log-combat');return;}
+  if(inCombat){log('⚠️ Termine o combate primeiro!','log-combat');return;}
+  // Boss a cada 5 kills na zona
+  if(G.kills>0 && G.kills%5===0 && !isBossFight){
+    spawnBoss(); return;
+  }
   const ep=ENEMIES[currentZone.id]||ENEMIES[1];
   const eb=ep[Math.floor(Math.random()*ep.length)];
-  const lv=Math.max(1,G.level+Math.floor(Math.random()*4)-1);
-  currentEnemy={...eb,level:lv,hp:Math.floor(eb.bHp*lv*currentZone.xm),maxHp:Math.floor(eb.bHp*lv*currentZone.xm),atk:Math.floor(eb.bAtk*lv*0.8)};
-  inCombat=true; showEnemy();
+  const lv=Math.max(1,G.level+Math.floor(Math.random()*5)-1);
+  currentEnemy={...eb,level:lv,
+    hp:Math.floor(eb.bHp*lv*currentZone.xm),
+    maxHp:Math.floor(eb.bHp*lv*currentZone.xm),
+    atk:Math.floor(eb.bAtk*lv*0.8)};
+  inCombat=true; isBossFight=false;
+  showEnemy();
   log(`🗺️ Encontrou: ${eb.icon} ${eb.n} Nv.${lv}!`,'log-combat');
 }
+function spawnBoss(){
+  const bd=BOSSES[currentZone.id];
+  const lv=Math.max(1,G.level+Math.floor(Math.random()*3));
+  currentBoss={...bd,level:lv,
+    hp:Math.floor(bd.bHp*lv*currentZone.xm*0.5),
+    maxHp:Math.floor(bd.bHp*lv*currentZone.xm*0.5),
+    atk:Math.floor(bd.bAtk*lv*0.5)};
+  inCombat=true; isBossFight=true;
+  document.getElementById('boss-panel').classList.add('visible');
+  document.getElementById('enemy-panel').classList.remove('visible');
+  document.getElementById('boss-name').textContent=`${bd.icon} ${bd.n}`;
+  updateBoss();
+  log(`⚡ BOSS APARECEU: ${bd.icon} ${bd.n} Nv.${lv}!`,'log-level');
+  showToast(`⚡ BOSS: ${bd.n}!`);
+}
+function updateBoss(){
+  if(!currentBoss) return;
+  const p=Math.max(0,(currentBoss.hp/currentBoss.maxHp)*100);
+  document.getElementById('boss-hp-fill').style.width=p+'%';
+  document.getElementById('boss-hp-val').textContent=Math.max(0,Math.floor(currentBoss.hp));
+  document.getElementById('boss-hp-max').textContent=currentBoss.maxHp;
+}
+
 function actAttack(){
   if(!inCombat){log('Explore para encontrar inimigos!','log-system');return;}
+  const target=getActiveEnemy();
   const crit=Math.random()*100<G.crit+(G.luck*0.3);
-  let dmg=Math.max(1,G.atk+Math.floor(Math.random()*8)-Math.floor(currentEnemy.atk*0.15));
-  if(crit){dmg=Math.floor(dmg*2.2);log(`⚡ CRÍTICO! ${dmg} de dano!`,'log-combat');}
-  else log(`⚔️ ${dmg} de dano em ${currentEnemy.n}.`,'log-combat');
-  G.totalDamageDealt+=dmg; currentEnemy.hp-=dmg;
-  if(currentEnemy.hp<=0){killEnemy();return;}
-  updateEnemy(); enemyAtk();
+  let dmg=Math.max(1,G.atk+Math.floor(Math.random()*10)-Math.floor(target.atk*0.1));
+  if(crit){dmg=Math.floor(dmg*2.2);log(`⚡ CRÍTICO! ${dmg} de dano em ${target.n}!`,'log-combat');}
+  else log(`⚔️ ${dmg} de dano em ${target.n}.`,'log-combat');
+  dealDmgToEnemy(dmg,target);
 }
 function actMagic(){
   if(!inCombat){log('Explore primeiro!','log-system');return;}
-  if(G.mp<12){log('Mana insuficiente!','log-system');return;}
+  if(G.mp<12){log('💙 Mana insuficiente!','log-system');return;}
   G.mp-=12;
-  const dmg=Math.max(1,Math.floor(G.mag*1.5)+Math.floor(Math.random()*15));
+  const target=getActiveEnemy();
+  const dmg=Math.max(1,Math.floor(G.mag*1.8)+Math.floor(Math.random()*20));
+  // Chance de aplicar burn com magia
+  if(Math.random()<0.25){applyStatus(target,'burn',3);log(`🔥 Queimadura aplicada!`,'log-power');}
   log(`🔮 Magia: ${dmg} de dano!`,'log-power');
-  G.totalDamageDealt+=dmg; currentEnemy.hp-=dmg;
-  if(currentEnemy.hp<=0){killEnemy();return;}
-  updateEnemy(); enemyAtk();
+  dealDmgToEnemy(dmg,target);
 }
 function actHeal(){
-  const heal=Math.max(10,Math.floor(G.mag*0.8)+Math.floor(Math.random()*20)+15);
-  if(inCombat&&G.mp<8){log('Mana insuficiente!','log-system');return;}
+  const heal=Math.max(15,Math.floor(G.mag*1.0)+Math.floor(Math.random()*25)+20);
+  if(inCombat&&G.mp<8){log('💙 Mana insuficiente!','log-system');return;}
   if(inCombat) G.mp-=8;
   const old=G.hp; G.hp=Math.min(G.maxHp,G.hp+heal);
   log(`💚 Curou ${G.hp-old} HP.`,'log-info');
@@ -918,44 +1237,107 @@ function actHeal(){
 }
 function actFlee(){
   if(!inCombat){log('Não está em combate.','log-system');return;}
-  if(Math.random()<0.55+(G.agi*0.01)){log('💨 Fugiu!','log-info');endCombat();}
-  else{log('💨 Fuga falhou!','log-combat');enemyAtk();}
+  if(isBossFight&&Math.random()<0.4){log('⚡ O Boss bloqueia sua fuga!','log-combat');enemyAtk();return;}
+  if(Math.random()<Math.min(0.9,0.45+(G.agi*0.01))){
+    log('💨 Fugiu com sucesso!','log-info');
+    G.killStreak=0; endCombat();
+  } else {log('💨 Fuga falhou!','log-combat');enemyAtk();}
 }
 function actRest(){
   if(inCombat){log('Não pode descansar em combate!','log-combat');return;}
-  G.hp=Math.min(G.maxHp,G.hp+Math.floor(G.maxHp*0.3));
-  G.mp=Math.min(G.maxMp,G.mp+Math.floor(G.maxMp*0.4));
-  log(`🏕️ Descansou e recuperou forças.`,'log-info');
+  G.hp=Math.min(G.maxHp,G.hp+Math.floor(G.maxHp*0.35));
+  G.mp=Math.min(G.maxMp,G.mp+Math.floor(G.maxMp*0.45));
+  G.statusEffect=null; G.statusTurns=0;
+  log(`🏕️ Descansou — HP e MP recuperados.`,'log-info');
 }
 function actSteal(){
   if(!inCombat){log('Explore para encontrar inimigos!','log-system');return;}
+  if(isBossFight){log('Não pode roubar do Boss!','log-system');return;}
   if(Math.random()<0.4+(G.luck*0.01)+(G.agi*0.005)){
-    const g=Math.floor((currentEnemy.level*15+Math.random()*30)*currentZone.gm);
+    const g=Math.floor((currentEnemy.level*20+Math.random()*40)*currentZone.gm);
     G.gold+=g; G.totalGoldEarned+=g;
-    log(`🗡️ Roubou ${g} ouro!`,'log-loot');
+    log(`🗡️ Roubou ${fn(g)} ouro!`,'log-loot');
     updQGold(g);
   } else {log('🗡️ Roubo falhou!','log-combat');enemyAtk();}
 }
+
+function dealDmgToEnemy(dmg,target){
+  G.totalDamageDealt+=dmg; target.hp-=dmg;
+  if(target.hp<=0){
+    if(isBossFight) killBoss();
+    else killEnemy();
+    return;
+  }
+  if(isBossFight) updateBoss(); else updateEnemy();
+  enemyAtk();
+}
+function applyStatus(target,type,turns){
+  target.statusEffect=type; target.statusTurns=turns;
+}
+function tickStatus(){
+  if(!G.statusEffect||G.statusTurns<=0) return;
+  const dmgMap={poison:Math.floor(G.maxHp*0.04),burn:Math.floor(G.maxHp*0.06),bleed:Math.floor(G.maxHp*0.05)};
+  const iconMap={poison:'☠️',burn:'🔥',bleed:'🩸',stun:'💫'};
+  const dmg=dmgMap[G.statusEffect]||0;
+  if(G.statusEffect==='stun'){log(`${iconMap.stun} Você está atordoado e perde o turno!`,'log-combat');}
+  else if(dmg>0){G.hp=Math.max(1,G.hp-dmg);log(`${iconMap[G.statusEffect]} ${G.statusEffect==='poison'?'Veneno':'Sangramento/Queimadura'}: -${dmg} HP`,'log-combat');}
+  G.statusTurns--;
+  if(G.statusTurns<=0){G.statusEffect=null;log('✅ Efeito de status removido.','log-info');}
+}
 function enemyAtk(){
-  if(!currentEnemy) return;
-  const dmg=Math.max(1,Math.floor(currentEnemy.atk*(1-G.def*0.005))+Math.floor(Math.random()*8));
+  const target=getActiveEnemy();
+  if(!target) return;
+  // Boss aplica status aleatório
+  if(isBossFight&&Math.random()<0.2){
+    const statuses=['poison','burn','bleed','stun'];
+    const s=statuses[Math.floor(Math.random()*statuses.length)];
+    G.statusEffect=s; G.statusTurns=2;
+    log(`💀 ${target.n} aplicou ${s} em você!`,'log-combat');
+  } else if(!isBossFight&&target.status&&Math.random()<0.25){
+    G.statusEffect=target.status; G.statusTurns=2;
+    log(`${target.icon} ${target.n} aplicou ${target.status}!`,'log-combat');
+  }
+  if(G.statusEffect==='stun'){return;}
+  const dmg=Math.max(1,Math.floor(target.atk*(1-Math.min(0.75,G.def*0.002)))+Math.floor(Math.random()*10));
   G.hp-=dmg;
-  log(`${currentEnemy.icon} ${currentEnemy.n} causou ${dmg} de dano.`,'log-combat');
+  log(`${target.icon} ${target.n} causou ${dmg} de dano!`,'log-combat');
   if(G.hp<=0){G.hp=0;playerDeath();}
 }
 function killEnemy(){
   const xp=Math.floor((currentEnemy.level*30+20)*currentZone.xm);
-  const gold=Math.floor((currentEnemy.level*20+10)*currentZone.gm);
+  const gold=Math.floor((currentEnemy.level*22+10)*currentZone.gm);
   G.xp+=xp; G.gold+=gold; G.totalGoldEarned+=gold; G.kills++;
-  log(`💀 ${currentEnemy.n} derrotado! +${xp}XP +${gold}🪙`,'log-loot');
+  G.killStreak=(G.killStreak||0)+1;
+  const streakBonus=G.killStreak>=5?Math.floor(gold*0.5*(Math.floor(G.killStreak/5))):0;
+  if(streakBonus>0){G.gold+=streakBonus;log(`🔥 COMBO x${G.killStreak}! +${fn(streakBonus)} ouro bônus!`,'log-level');}
+  const drop=currentEnemy.drop?` [${currentEnemy.drop}]`:'';
+  log(`💀 ${currentEnemy.n} derrotado!${drop} +${xp}XP +${fn(gold)}🪙`,'log-loot');
   updQGold(gold); updQKill(); endCombat(); checkLevelUp();
 }
-function endCombat(){inCombat=false;currentEnemy=null;document.getElementById('enemy-panel').classList.remove('visible');}
+function killBoss(){
+  const b=currentBoss;
+  const r=BOSSES[currentZone.id].reward;
+  G.xp+=r.xp; G.gold+=r.gold; G.totalGoldEarned+=r.gold;
+  G.bossKills=(G.bossKills||0)+1; G.kills++;
+  G.killStreak=0;
+  log(`🏆 BOSS DERROTADO: ${b.n}! +${fn(r.xp)}XP +${fn(r.gold)}🪙 [${b.drop}]`,'log-level');
+  showToast(`🏆 Boss derrotado! +${fn(r.xp)} XP!`);
+  document.getElementById('boss-panel').classList.remove('visible');
+  inCombat=false; isBossFight=false; currentBoss=null;
+  updQKill(); checkLevelUp();
+}
+function endCombat(){
+  inCombat=false; isBossFight=false; currentEnemy=null; currentBoss=null;
+  document.getElementById('enemy-panel').classList.remove('visible');
+  document.getElementById('boss-panel').classList.remove('visible');
+}
 function playerDeath(){
-  G.hp=Math.floor(G.maxHp*0.3); G.gold=Math.floor(G.gold*0.85);
+  G.hp=Math.floor(G.maxHp*0.3);
+  G.gold=Math.floor(G.gold*0.85);
+  G.statusEffect=null; G.statusTurns=0; G.killStreak=0;
   endCombat();
   log(`☠️ Derrotado! Perdeu 15% do ouro.`,'log-combat');
-  showModal('💀 Derrotado!','Você sobreviveu, mas perdeu 15% do ouro. Descanse e volte mais forte!');
+  showModal('💀 Derrotado!','Você sobreviveu, mas perdeu 15% do ouro e seu combo foi zerado. Descanse e volte mais forte!');
 }
 function showEnemy(){
   const p=document.getElementById('enemy-panel');
@@ -994,7 +1376,9 @@ function checkLevelUp(){
     G.maxMp+=6+Math.floor(G.level*0.8); G.mp=G.maxMp;
     G.atk+=2;G.def+=1;G.mag+=2;G.agi+=1;G.luck+=1;
     G.crit=Math.min(75,G.crit+0.5); G.powerPoints+=2;
-    flashLU(); log(`🌟 NÍVEL UP! Nível ${G.level}! +2 pontos de poder!`,'log-level');
+    flashLU();
+    log(`🌟 NÍVEL UP! Nível ${G.level}! +2 pontos de poder!`,'log-level');
+    showToast(`🌟 Nível ${G.level}!`);
     buildPowersTab(); buildFicha();
   }
   renderAll();
@@ -1089,13 +1473,22 @@ function collectRent(){
 // ══════════ SHOP ══════════
 function buildShopTab(){
   if(!G) return;
-  document.getElementById('shop-grid').innerHTML=SHOP_ITEMS.map(it=>`
-    <div class="shop-item">
-      <div class="s-icon">${it.icon}</div><h4>${it.name}</h4>
-      <p>${it.desc}</p><div class="sprice">🪙 ${fn(it.price)}</div>
-      <button class="btn btn-gold" style="font-size:.65rem;padding:.35rem" onclick="buyItem('${it.id}')">Comprar</button>
-    </div>`).join('');
+  const cats=[{id:'consumable',label:'🧪 Poções'},{id:'weapon',label:'⚔️ Armas'},{id:'armor',label:'🛡️ Defesa'},{id:'accessory',label:'💍 Acessórios'}];
+  const items=SHOP_ITEMS.filter(i=>i.cat===shopCat);
+  document.getElementById('shop-grid').innerHTML=`
+    <div style="display:flex;gap:.35rem;margin-bottom:.7rem;flex-wrap:wrap">
+      ${cats.map(c=>`<button class="shop-cat-btn${shopCat===c.id?' active':''}" onclick="setShopCat('${c.id}')">${c.label}</button>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem">
+      ${items.map(it=>`
+        <div class="shop-item">
+          <div class="s-icon">${it.icon}</div><h4>${it.name}</h4>
+          <p>${it.desc}</p><div class="sprice">🪙 ${fn(it.price)}</div>
+          <button class="btn btn-gold" style="font-size:.65rem;padding:.35rem" onclick="buyItem('${it.id}')">Comprar</button>
+        </div>`).join('')}
+    </div>`;
 }
+function setShopCat(c){shopCat=c;buildShopTab();}
 function buyItem(id){
   const it=SHOP_ITEMS.find(x=>x.id===id);if(!it||!G) return;
   if(G.gold<it.price){log(`Precisa de ${fn(it.price)} ouro!`,'log-system');return;}
@@ -1106,15 +1499,28 @@ function buyItem(id){
 function applyItem(it){
   switch(it.id){
     case 'hp_pot': G.hp=Math.min(G.maxHp,G.hp+50); break;
+    case 'hp_pot2': G.hp=Math.min(G.maxHp,G.hp+200); break;
     case 'mp_pot': G.mp=Math.min(G.maxMp,G.mp+40); break;
+    case 'mp_pot2': G.mp=Math.min(G.maxMp,G.mp+150); break;
     case 'elixir': G.hp=G.maxHp;G.mp=G.maxMp; break;
+    case 'elixir2': G.hp=G.maxHp;G.mp=G.maxMp;G.atk+=10;G.mag+=10;G.def+=10;G.agi+=10;G.luck+=10; break;
+    case 'antidote': G.statusEffect=null;G.statusTurns=0; break;
     case 'xp_scroll': G.xp+=500;checkLevelUp(); break;
+    case 'xp_scroll2': G.xp+=2000;checkLevelUp(); break;
     case 'sword': G.atk+=25; break;
+    case 'greatsword': G.atk+=50; break;
     case 'staff': G.mag+=30; break;
+    case 'grimoire': G.mag+=60; break;
+    case 'dagger': G.atk+=15;G.agi+=15; break;
     case 'armor': G.def+=20; break;
+    case 'armor2': G.def+=45; break;
     case 'boots': G.agi+=20; break;
+    case 'boots2': G.agi+=40; break;
     case 'ring': G.luck+=30; break;
+    case 'amulet': G.atk+=20;G.mag+=20; break;
     case 'tome': G.powerPoints+=3; break;
+    case 'tome2': G.powerPoints+=8; break;
+    case 'crown': G.atk+=50;G.mag+=50;G.def+=50;G.agi+=50;G.luck+=50; break;
   }
 }
 
@@ -1124,7 +1530,8 @@ function buildFicha(){
   document.getElementById('ficha-grid').innerHTML=`
   <div class="ficha-card">
     <h4>📊 Status</h4>
-    ${fr('Nível',G.level)}${fr('HP',G.hp+'/'+G.maxHp)}
+    ${fr('Nível',G.level)}${fr('Prestígio',G.prestige||0)}
+    ${fr('HP',G.hp+'/'+G.maxHp)}
     ${fr('MP',G.mp+'/'+G.maxMp)}${fr('XP',G.xp+'/'+G.xpNeeded)}
   </div>
   <div class="ficha-card">
@@ -1140,10 +1547,18 @@ function buildFicha(){
   </div>
   <div class="ficha-card">
     <h4>📜 Histórico</h4>
-    ${fr('Mortes',G.kills)}${fr('Dano',fn(G.totalDamageDealt))}
-    ${fr('Poderes',G.unlockedPowers.length)}${fr('Traits',G.godTraits.length)}
-    ${fr('Ações',G.actionsCount)}${fr('P.Poder',G.powerPoints)}
+    ${fr('Abates',G.kills)}${fr('Bosses',G.bossKills||0)}
+    ${fr('Dano',fn(G.totalDamageDealt))}
+    ${fr('Poderes',G.unlockedPowers.length)}
+    ${fr('Conquistas',(G.achievements||[]).length+'/'+ACHIEVEMENTS.length)}
+    ${fr('P.Poder',G.powerPoints)}
   </div>`;
+  const ps=document.getElementById('prestige-section');
+  const pc=document.getElementById('prestige-count');
+  if(ps&&pc){
+    pc.textContent=G.prestige||0;
+    ps.style.display=G.level>=100?'block':'none';
+  }
 }
 function fr(l,v){return `<div class="frow"><span>${l}</span><span class="fv">${v}</span></div>`;}
 
@@ -1153,16 +1568,87 @@ function updQGold(a){if(!G)return;G.quests.filter(q=>q.type==='gold'&&!q.done).f
 function updQPower(){if(!G)return;G.quests.filter(q=>q.type==='power'&&!q.done).forEach(q=>q.prog++);}
 function checkQuests(){
   if(!G) return;
+  let anyDone=false;
   G.quests.forEach(q=>{
     if(!q.done&&q.prog>=q.goal){
-      q.done=true;
+      q.done=true; anyDone=true;
       if(q.reward.xp) G.xp+=q.reward.xp;
       if(q.reward.gold) G.gold+=q.reward.gold;
       if(q.reward.pp) G.powerPoints+=q.reward.pp;
-      log(`🏆 Missão completa: ${q.name}!`,'log-level');
+      log(`🏆 MISSÃO COMPLETA: ${q.name}! +${fn(q.reward.xp||0)}XP +${fn(q.reward.gold||0)}🪙`,'log-level');
+      showToast(`🏆 Missão completa: ${q.name}!`);
       checkLevelUp();
     }
   });
+  // Se todas completas, gerar novas missões de tier maior
+  if(anyDone && G.quests.every(q=>q.done)){
+    G.quests=generateQuests(G.level);
+    log(`📋 Novas missões disponíveis!`,'log-info');
+    showToast('📋 Novas missões desbloqueadas!');
+  }
+}
+function buildQuestsTab(){
+  if(!G) return;
+  document.getElementById('quests-list').innerHTML=G.quests.map(q=>{
+    const pct=Math.min(100,Math.floor((q.prog/q.goal)*100));
+    const typeIcon={kill:'⚔️',gold:'🪙',power:'🔮'}[q.type]||'📋';
+    return `<div class="quest-card ${q.done?'done':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h4 style="color:${q.done?'#2ecc71':'var(--gold)'};font-size:.8rem">${typeIcon} ${q.name}</h4>
+        ${q.done?'<span style="color:#2ecc71;font-size:.7rem">✅ Completa</span>':''}
+      </div>
+      <div class="quest-prog-bar"><div class="quest-prog-fill" style="width:${pct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.65rem;color:#887766">
+        <span>${fn(q.prog)}/${fn(q.goal)}</span>
+        <span>🎁 +${fn(q.reward.xp||0)}XP${q.reward.gold?` +${fn(q.reward.gold)}🪙`:''}${q.reward.pp?` +${q.reward.pp}pts`:''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════ ACHIEVEMENTS ══════════
+function checkAchievements(){
+  if(!G) return;
+  if(!G.achievements) G.achievements=[];
+  ACHIEVEMENTS.forEach(a=>{
+    if(!G.achievements.includes(a.id)&&a.check(G)){
+      G.achievements.push(a.id);
+      log(`🏅 CONQUISTA: ${a.icon} ${a.name}!`,'log-level');
+      showToast(`🏅 ${a.icon} ${a.name}`);
+    }
+  });
+}
+function buildAchievementsTab(){
+  if(!G) return;
+  if(!G.achievements) G.achievements=[];
+  const done=G.achievements.length;
+  document.getElementById('achievements-grid').innerHTML=`
+    <div style="text-align:center;margin-bottom:.8rem;font-size:.72rem;color:#887766">
+      ${done}/${ACHIEVEMENTS.length} conquistadas
+    </div>
+    <div class="ach-grid">${ACHIEVEMENTS.map(a=>{
+      const d=G.achievements.includes(a.id);
+      return `<div class="ach-card ${d?'done':''}">
+        <div class="ach-icon">${a.icon}</div>
+        <div><h5>${a.name}</h5><p>${a.desc}</p></div>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+// ══════════ PRESTIGE ══════════
+function doPrestige(){
+  if(!G||G.level<100) return;
+  if(!confirm(`Realizar Prestígio ${G.prestige+1}? Você voltará ao Nível 1 com +${(G.prestige+1)*10}% em todos os stats base.`)) return;
+  const newPrestige=G.prestige+1;
+  const prevAch=[...G.achievements];
+  G=freshState(G.cls,G.name,newPrestige);
+  G.achievements=prevAch;
+  currentZone=ZONES[0];
+  renderAll(); buildPowersTab(); buildPropertiesTab(); buildShopTab(); buildFicha();
+  buildGodPanel(); buildQuestsTab(); buildAchievementsTab();
+  log(`♾️ PRESTÍGIO ${newPrestige}! Stats +${newPrestige*10}% permanentes!`,'log-level');
+  showToast(`♾️ Prestígio ${newPrestige} realizado!`);
+  saveGame();
 }
 
 // ══════════ MODAL ══════════
@@ -1177,7 +1663,9 @@ function closeModal(){document.getElementById('modal').classList.remove('open');
 function log(msg,cls='log-system'){
   const l=document.getElementById('log');
   const p=document.createElement('p');p.className=cls;p.textContent=msg;
-  l.appendChild(p);l.scrollTop=l.scrollHeight;
+  l.appendChild(p);
+  while(l.children.length>100) l.removeChild(l.firstChild);
+  l.scrollTop=l.scrollHeight;
 }
 
 // ══════════ BANNER ══════════
@@ -1329,12 +1817,33 @@ function cheat(type){
         G=freshState(G.cls,G.name);
         renderAll();buildPowersTab();buildPropertiesTab();buildFicha();buildShopTab();
         godLog('🔄 Reset total.');log('👁️ [DEUS] Reset.','log-god');
+        deleteSave();
       }
       break;
   }
   renderAll();
 }
-function godLog(msg){const e=document.getElementById('god-log');e.innerHTML+=`<span style="color:#ff88ff">[⚡]</span> ${msg}<br>`;e.scrollTop=e.scrollHeight;}
+function godLog(msg){
+  const e=document.getElementById('god-log');
+  const line=document.createElement('span');
+  line.innerHTML=`<span style="color:#ff88ff">[⚡]</span> ${msg}<br>`;
+  e.appendChild(line);
+  while(e.children.length>50) e.removeChild(e.firstChild);
+  e.scrollTop=e.scrollHeight;
+}
+
+// ══════════ INIT ══════════
+window.addEventListener('DOMContentLoaded',()=>{
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(raw){
+    try{
+      const data=JSON.parse(raw);
+      if(data.G&&data.G.cls){
+        document.getElementById('btn-continue').style.display='block';
+      }
+    }catch(e){}
+  }
+});
 
 // ══════════ SERVICE WORKER (offline) ══════════
 if('serviceWorker' in navigator){
